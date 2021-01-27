@@ -14,10 +14,6 @@ const GUILD = SECRET.discordGuildId;
 const ROLES_TO_GIVE = SECRET.discordRoles.split(',');
 const TOURNEY_PREFIX = SECRET.tournamentAcronym;
 
-function onOpen(e) {
-  if ('grantedPermissions' in SECRET) SP.setProperty('grantedPermissions', 'true');
-}
-
 // URL to be used on the forum post (maybe shorten it?)
 function returnForumURL(type) {
   const redirectUri = ScriptApp.getService().getUrl().replace('dev','exec');
