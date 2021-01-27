@@ -23,7 +23,7 @@ function forumPostURL() {
 
 function setEnvVars() {
   const UI = SpreadsheetApp.getUi();
-  const prompt = (message) => UI.prompt(message, UI.ButtonSet.OK_CANCEL);
+  const prompt = (title, message) => UI.prompt(title, message, UI.ButtonSet.OK_CANCEL);
   const tournamentAcronym = prompt('Enter your Tournament\'s acronym (e.g. My osu! Tournament => MOT)', 'Cancel: no change'); 
   const osuClientIdPrompt = prompt('Enter your osu! OAuth Client ID', 'Cancel: no change');
   const osuClientSecretPrompt = prompt('Enter your osu! OAuth Client Secret', 'Cancel: no change');
