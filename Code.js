@@ -1,31 +1,42 @@
 const SP = PropertiesService.getScriptProperties();
 const SS = SpreadsheetApp.getActiveSpreadsheet();
+/**
+ * @type {{
+ * mode: number,
+ * tournamentAcronym: string,
+ * redirectUri: string,
+ * osuClientId: string, 
+ * osuClientSecret: string,
+ * discordClientId: string,
+ * discordClientSecret: string,
+ * discordBotToken: string,
+ * discordGuildId: 'snowflake',
+ * discordRoles: 'snowflake[]' 
+ * }}
+ */
 const SECRET = SP.getProperties();
 const CACHE = CacheService.getScriptCache();
 const LOCK = LockService.getScriptLock();
-// working sheet
-const SHEET = '_DATA';
-// deploy as a web app for this to work
-// this is also the url that goes on the osu! account settings 'Application Callback URL'
-const REDIRECT_URI = ScriptApp.getService().getUrl().replace('dev','exec');
+// this the url that goes on the osu! account settings 'Application Callback URL'
+const REDIRECT_URI = SECRET.redirectUri;
 // Discord Guild ID (snowflake=string) to add players to
 const GUILD = SECRET.discordGuildId;
-// Array of Discord Role IDs (snowflakes=strings) to add to players;
-const ROLES_TO_GIVE = SECRET.discordRoles.split(',');
+// query mode for players (standard/mania/taiko/ctb)
+const MODE = SECRET.mode;
+// Array of Discord Role IDs (snowflakes=strings) to add to players
+// stored as a string in the format '0123456789,1012131415' and split afterwards;
+const ROLES_TO_GIVE = SECRET.discordRoles;
 const TOURNEY_PREFIX = SECRET.tournamentAcronym;
-
-function onOpen(e) {
-  if ('grantedPermissions' in SECRET) SP.setProperty('grantedPermissions', 'true');
-}
+// working sheet, realistically the only thing you would change in this script
+const SHEET = '_DATA';
 
 // URL to be used on the forum post (maybe shorten it?)
-function returnForumURL(type) {
-  const redirectUri = ScriptApp.getService().getUrl().replace('dev','exec');
+function returnForumURL(returnUriOnly) {
+  const redirectUri = REDIRECT_URI;
   const result = `https://osu.ppy.sh/oauth/authorize?client_id=${SECRET.osuClientId}&redirect_uri=${redirectUri}&response_type=code&scope=identify&state=osu`;
-  if (type) return redirectUri;
+  if (returnUriOnly) return redirectUri;
   return result;
 }
-
 // osu AUTHORIZATION CODE GRANT (add new users) function
 const getOsuToken = ((authCode) => {
   const url = 'https://osu.ppy.sh/oauth/token';
@@ -46,7 +57,6 @@ const getOsuToken = ((authCode) => {
   })
   // only return the access_token, we're not storing refresh_tokens
   if (fetchToken.getResponseCode() !== 200) return null;
-
   const result = JSON.parse(fetchToken).access_token;
   return result;
 });
@@ -88,9 +98,10 @@ const getDiscordToken = ((authCode) => {
     },
     muteHttpExceptions: true
   })
-  // only return the access_token, we're not storing refresh_tokens
+  // no token
   if (fetchToken.getResponseCode() !== 200) return null;
 
+  // only return the access_token, we're not storing refresh_tokens
   const result = JSON.parse(fetchToken).access_token;
   return result;
 });
@@ -98,10 +109,11 @@ const getDiscordToken = ((authCode) => {
 /**
  * Query the user whose token is passed as an argument
  * @param {string} token The token.
- * @returns {{ userObject }} Object representing a user for a valid token, null otherwise.
+ * @return { osuUser } Object representing a user for a valid token, null otherwise.
  */
 function queryUser(token) {
-  const url = 'https://osu.ppy.sh/api/v2/me/osu';
+  const url = `https://osu.ppy.sh/api/v2/me/${MODE}`;
+  console.log(url);
   const fetchUser = UrlFetchApp.fetch(url, {
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -115,7 +127,15 @@ function queryUser(token) {
   let result = JSON.parse(fetchUser);
   result.badgeCount = 0;
 
-  const ignoredBadges = /contrib|nomination|assessment|global|moderation|beatmap|spotlight|map|mapp|aspire|elite|mapper|monthly|exemplary|outstanding|longstanding|idol/i;
+  let filterRange = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('_filtered_badges!A1')
+    .getDataRegion(SpreadsheetApp.Dimension.ROWS)
+    .getValues()
+    .flat(2)
+    .filter(i => i);
+  
+  let expression = filterRange.join('|');
+  // crappy way to ignore badges based on a regexp but it works
+  const ignoredBadges = new RegExp(expression,'i');
 
   for (badge in result.badges) {
     let currentBadge = result.badges[badge].description;
@@ -132,14 +152,14 @@ function queryUser(token) {
 
   return result;
 }
-
 /**
  * @param {string} token The oauth2 user token.
- * @returns {number} HTTPResponse code indicating the result of the operation.
+ * @return {number} HTTPResponse code indicating the result of the operation.
  */
 function discordJoinServer(token) {
   const baseURL = 'https://discord.com/api/v8';
   const urlUsers = `${baseURL}/users/@me`
+  const rolesToGive = ROLES_TO_GIVE.split(',');
   const requestUser = UrlFetchApp.fetch(urlUsers, {
     method: 'get',
     headers: {
@@ -149,10 +169,6 @@ function discordJoinServer(token) {
   const user = JSON.parse(requestUser);
 
   const guildUserFetch = ((rolesToGive, method) => {
-    console.log('Bot ' + SECRET.discordBotToken);
-    console.log('user.id:', user.id);
-    console.log('rolesToGive:', rolesToGive, ROLES_TO_GIVE);
-    console.log('GUILD', GUILD);
     let urlGuilds = `https://discordapp.com/api/v8/guilds/${GUILD}/members/${user.id}`;
     let params = {
       method: 'get',
@@ -171,7 +187,7 @@ function discordJoinServer(token) {
         "roles": rolesArr
       });
       const request = UrlFetchApp.fetch(urlGuilds, params);
-      return { user: request.user , response: request.getResponseCode() };
+      return { user: request.user, response: request.getResponseCode() };
     }
     // member in guild
     if (method === 'patch') {
@@ -185,11 +201,11 @@ function discordJoinServer(token) {
         "roles": role
       });
       const request = UrlFetchApp.fetch(urlGuilds, params);
-      return { user: request.user , response: request.getResponseCode() };
+      return { user: request.user, response: request.getResponseCode() };
     }
 
     const request = UrlFetchApp.fetch(urlGuilds, params);
-    return { user: request.user , response: request.getResponseCode() };
+    return { user: request.user, response: request.getResponseCode() };
   });
 
   const discordTag = `${user.username}#${user.discriminator}`;
@@ -198,7 +214,7 @@ function discordJoinServer(token) {
 
   // user not in guild
   if (requestGuild.response === 404) {
-    let result = guildUserFetch(ROLES_TO_GIVE, 'put');
+    let result = guildUserFetch(rolesToGive, 'put');
     // @ts-ignore
     return { discordTag, discordId, response: result.response };
   }
@@ -206,7 +222,7 @@ function discordJoinServer(token) {
   // user in guild, update instead
   if (requestGuild.response === 200) {
     let response;
-    for (currentRole of ROLES_TO_GIVE) {
+    for (currentRole of rolesToGive) {
       response = guildUserFetch(currentRole, 'patch').response;
     }
     // @ts-ignore
@@ -215,11 +231,15 @@ function discordJoinServer(token) {
   // @ts-ignore      
   return { discordTag, discordId, response: requestGuild.response };
 }
-
 /** 
  * @param {(number|string)} userId The user ID to query, can be the username (auto detects which of the two it is)
- * @returns {Promise<object>} Promise that resolves to a UserObject representing the user. https://osu.ppy.sh/docs/index.html?javascript#user
- * @customfunction
+ * @param {(number|string)} mode The mode to query for: 1 - standard; 2 - mania; 3 - taiko; 4 - catch
+ * @typedef {Object} osuUser An object representing the osu! user for the queried user id
+ * @property {string} username The user's current username
+ * @property {number} rank The user's rank for the mode
+ * @property {number} badgeCount The amount of tournament badges for a player (excludes Contributor/mapping/etc.)
+ * @property {URL} avatar_url The URL for the user's avatar
+ * @returns {osuUser} Object representing the osu! user. https://osu.ppy.sh/docs/index.html?javascript#user
 */
 function getUser(userId, mode) {
   const osuService = getOsuClientService();
@@ -258,10 +278,21 @@ function getUser(userId, mode) {
 
   let result = JSON.parse(response);
   result.badgeCount = 0;
-  const ignoredBadges = /contrib|nomination|assessment|global|moderation|beatmap|spotlight|map|mapp|aspire|elite|mapper|monthly|exemplary|outstanding|longstanding|idol/i;
+
+  let filterRange = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('_filtered_badges!A1')
+    .getDataRegion(SpreadsheetApp.Dimension.ROWS)
+    .getValues()
+    .flat(2)
+    .filter(i => i);
+  
+  let expression = filterRange.join('|');
+  // crappy way to ignore badges based on a regexp but it works
+  const ignoredBadges = new RegExp(expression,'i');
 
   for (badge in result.badges) {
     let currentBadge = result.badges[badge].description;
+    // if the badge's description (lowercased) doesn't match our regExp
+    // add a badge to the user's badgeCount property
     if (!ignoredBadges.test(currentBadge.toLowerCase())) result.badgeCount++;
   }
 
@@ -278,29 +309,46 @@ function getUser(userId, mode) {
   return result;
 }
 
+
 /**
  * Updates the osu! user information
  */
 function updateUsers() {
-  const range = SS.getRangeByName(`${SHEET}!A1`).getDataRegion();
+  const range = SS.getRangeByName(`${SHEET}!B1:J`);
   let data = range.getValues();
   for (row of data) {
-    // header row
-    if (row[1] === 'id') continue;
-    const user = getUser(row[1]);
+    // header row, skip this iteration
+    if (row[0] === 'id') continue;
+    // empty row, skip this iteration
+    if (!row[0]) continue;
+
+    const user = getUser(row[0], MODE);
     if (user.username === 'RESTRICTED') {
-      row[2] += ' [RESTRICTED]';
+      row[1] += ' [RESTRICTED]';
       continue;
-      }
-    else if (user.username) { 
-      row[2] = user.username;
-      row[3] = user.rank;
-      row[4] = user.badgeCount;
-      row[5] = user.avatar_url;
+    }
+    else if (user.username) {
+      row[1] = user.username;
+      row[2] = user.rank;
+      row[3] = user.pp;
+      row[4] = user.statistics.play_count;
+      row[5] = new Date(user.join_date);
+      row[6] = user.badgeCount;
+      row[7] = user.avatar_url;
+      row[8] = user.country_code;
     }
   }
+  const rangeToAdd = [1, 2, range.getLastRow(), range.getLastColumn() - 1];
   // pushing the same range we queried, prevents race condition-related errors
-  SS.getSheetByName(SHEET).getRange(1, 1, range.getLastRow(), range.getLastColumn()).setValues(data);
+  return SS.getSheetByName(SHEET).getRange(...rangeToAdd).setValues(data);
+}
+/**
+ * Deletes all registered users from the sheet
+ */
+function deleteUsers() {
+  const range = SS.getRangeByName(`${SHEET}!A1`).getDataRegion();
+  const rangeToDelete = [2, 1, range.getLastRow(), range.getLastColumn()];
+  return SS.getSheetByName(`${SHEET}`).getRange(...rangeToDelete).clearContent();
 }
 
 // this is the code that gets executed when the REDIRECT_URI is called
@@ -308,7 +356,7 @@ function doGet(e) {
   // abstract the state from the URL
   const state = e.parameter.state;
   // error parameter in the url = user denied either of the oauth provider's consent screens
-  if(e.parameter.hasOwnProperty('error')) {
+  if (e.parameter.hasOwnProperty('error')) {
     return HtmlService.createTemplateFromFile('Access-denied')
       .evaluate()
       .setTitle(`${TOURNEY_PREFIX} - Authorization Failed`);
@@ -337,22 +385,20 @@ function doGet(e) {
     const userIsPresent = range.getValues().some(r => r[1] === user.id);
     if (userIsPresent) {
       let page = HtmlService.createTemplateFromFile('Already-registered')
-      page.uid = user.id;
-      page.url = `https://discord.com/api/oauth2/authorize?client_id=${SECRET.discordClientId}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify%20guilds.join&state=discord`;
+      page.url = `https://discord.com/api/oauth2/authorize?client_id=${SECRET.discordClientId}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify%20guilds.join&state=discord.${user.id}`;
       return page
-      .evaluate()
-      .setTitle(`${TOURNEY_PREFIX} - Player Already Registered`);
+        .evaluate()
+        .setTitle(`${TOURNEY_PREFIX} - Player Already Registered`);
     };
-    
+
     // appending one row to the end of the range
-    const addToRange = [[ new Date(),user.id, user.username, user.rank, user.badgeCount, user.avatar_url]];
-    
+    const addToRange = [[new Date(), user.id, user.username, user.rank, user.badgeCount, user.avatar_url]];
+
     // start at the row directly after the last, first column and span 1 row, addToRange[0] columns
     SS.getSheetByName(SHEET).getRange(range.getLastRow() + 1, 1, 1, addToRange[0].length).setValues(addToRange);
     let page = HtmlService
-    .createTemplateFromFile('Success')
-    page.uid = user.id;
-    page.url = `https://discord.com/api/oauth2/authorize?client_id=${SECRET.discordClientId}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify%20guilds.join&state=discord`;
+      .createTemplateFromFile('Success')
+    page.url = `https://discord.com/api/oauth2/authorize?client_id=${SECRET.discordClientId}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify%20guilds.join&state=discord.${user.id}`;
 
     return page
       .evaluate()
@@ -399,7 +445,53 @@ function doGet(e) {
   }
   else {
     return HtmlService.createTemplateFromFile('Unauthorized')
-    .evaluate()
-    .setTitle(`${TOURNEY_PREFIX} - Error`)
+      .evaluate()
+      .setTitle(`${TOURNEY_PREFIX} - Error`)
   };
 }
+
+function bumpSheetVersion(bumpType) {
+  const rangeVersion = SS.getRange('Instructions!F39');
+  const rangeDate = SS.getRange('Instructions!G39');
+  const version = rangeVersion.getValue();
+  let newVersion;
+  let bump;
+  let regExp;
+
+  switch (bumpType) {
+    case 'patch':
+      newVersion = version.slice(0, -1);
+      bump = parseInt(version.slice(-1));
+      newVersion += ++bump;
+      rangeVersion.setValue(newVersion);
+      rangeDate.setValue(('|  ' + new Date().toUTCString()).replace('GMT', 'UTC'));
+      break;
+    case 'minor':
+      regExp = /(?:\.)(\d+)(?:\.\d+)/;
+      bump = parseInt(version.match(regExp)[1]);
+      newVersion = version.replace(regExp, `.${++bump}.0`);
+      rangeVersion.setValue(newVersion);
+      rangeDate.setValue(('|  ' + new Date().toUTCString()).replace('GMT', 'UTC'));
+      break;
+    case 'major':
+      regExp = /(\d+)(?:\.\d+\.\d+)/;
+      bump = parseInt(version.match(regExp)[1]);
+      newVersion = version.replace(regExp, `${++bump}.0.0`);
+      rangeVersion.setValue(newVersion);
+      rangeDate.setValue(('|  ' + new Date().toUTCString()).replace('GMT', 'UTC'));
+      break;
+  }
+}
+
+function projectVersioning() {
+  const UI = SpreadsheetApp.getUi();
+  UI.createMenu('Project versioning')
+    .addItem('Patch', 'bumpPatch')
+    .addItem('Minor', 'bumpMinor')
+    .addItem('Major', 'bumpMajor')
+    .addToUi();
+}
+
+function bumpPatch() {return bumpSheetVersion('patch')}
+function bumpMinor() {return bumpSheetVersion('minor')}
+function bumpMajor() {return bumpSheetVersion('major')}
