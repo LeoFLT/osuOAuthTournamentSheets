@@ -24,7 +24,11 @@ const GUILD = SECRET.discordGuildId;
 // query mode for players (standard/mania/taiko/ctb)
 const MODE = SECRET.mode;
 // Array of Discord Role IDs (snowflakes=strings) to add to players
+<<<<<<< HEAD:Code.js
 // stored as a string in the format '0123456789,1012131415' and split afterwards;
+=======
+// stored as a string in the format '1234567890,0987654321' and split;
+>>>>>>> 8c3017faf3f1c0781b5592312c0d317cbd9e9f36:Code.gs
 const ROLES_TO_GIVE = SECRET.discordRoles;
 const TOURNEY_PREFIX = SECRET.tournamentAcronym;
 // working sheet, realistically the only thing you would change in this script
