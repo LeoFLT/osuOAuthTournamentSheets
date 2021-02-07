@@ -74,7 +74,7 @@ function setEnvVars() {
     PropertiesService.getScriptProperties().setProperty('mode', finalResult);
   }
 
-  const registrationEndDate = prompt('Enter your registration deadline', `${REGISTRATION_END_DATE ? `Current end date: ${REGISTRATION_END_DATE}` : 'No end date set (signups open forever)'}\n\nFormat: ${new Date().toUTCString()}\n\nTimezone codes are supported (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date#several_ways_to_create_a_date_object)\n\nNo date set = regs always open\n\nCancel: no change`,)
+  const registrationEndDate = prompt('Enter your registration deadline', `Current end date: ${REGISTRATION_END_DATE ? REGISTRATION_END_DATE : 'No end date set (signups open forever)'}\n\nFormat: ${new Date().toUTCString()}\n\nTimezone codes are supported (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date#several_ways_to_create_a_date_object)\n\nLeave the field empty to have signups always open\n\nCancel: no change`,)
   if (registrationEndDate.getSelectedButton() === UI.Button.OK) {
     const result = registrationEndDate.getResponseText().trim();
     PropertiesService.getScriptProperties().setProperty('registrationEndDate', result);
