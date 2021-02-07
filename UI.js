@@ -57,7 +57,7 @@ function setEnvVars() {
   const UI = SpreadsheetApp.getUi();
   const prompt = (title, message) => UI.prompt(title, message, UI.ButtonSet.OK_CANCEL);
 
-  const redirectUriPrompt = UI.prompt('Enter your project\'s Redirect Uri', 'Get it by deploying the Apps Script Project as a web app\n\nCancel: no change', UI.ButtonSet.OK_CANCEL);
+  const redirectUriPrompt = UI.prompt('Enter your project\'s Redirect URI', 'Get it by deploying the Apps Script Project as a web app\n\nCancel: no change', UI.ButtonSet.OK_CANCEL);
   if (redirectUriPrompt.getSelectedButton() === UI.Button.OK) {
     const result = redirectUriPrompt.getResponseText().trim();
     return PropertiesService.getScriptProperties().setProperty('redirectUri', result);
