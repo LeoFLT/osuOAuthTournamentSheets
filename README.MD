@@ -7,6 +7,6 @@ This collection of scripts will:
 * Auto-join your desired Discord server, assignining as many roles as you wish.
 
 # Dependencies
-none
+clasp (to push the code to a Google Apps Script project)
 
 WIP but works as is.
