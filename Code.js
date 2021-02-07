@@ -29,7 +29,7 @@ const MODE = SECRET.mode;
 const ROLES_TO_GIVE = SECRET.discordRoles;
 const TOURNEY_PREFIX = SECRET.tournamentAcronym;
 // The date after which new registrations will not be allowed
-const REGISTRATION_END_DATE = SECRET.registrationEndDate;
+const REGISTRATION_END_DATE = SECRET.registrationEndDate ? new Date(SECRET.registrationEndDate) : '';
 // working sheet, realistically the only thing you would change in this script
 const SHEET = '_DATA';
 
@@ -37,16 +37,16 @@ const SHEET = '_DATA';
 // this is the code that gets executed when the REDIRECT_URI is called from a browser
 function doGet(e) {
   const date = new Date().getTime();
-  if (date && (date > REGISTRATION_END_DATE.getTime())) {
-    let page = HtmlService
-      .createTemplateFromFile('Registration-Over');
-    page.endDate = REGISTRATION_END_DATE.toUTCString().replace('GMT', 'UTC');
-    page.forumPostURL = FORUM_POST;
+    if (REGISTRATION_END_DATE ? (date > REGISTRATION_END_DATE.getTime()) : false) {
+      let page = HtmlService
+        .createTemplateFromFile('Registration-Over');
+      page.endDate = REGISTRATION_END_DATE.toUTCString().replace('GMT', 'UTC');
+      page.forumPostURL = FORUM_POST;
 
-    return page
-      .evaluate()
-      .setTitle(`${TOURNEY_PREFIX} - Registration Period Over`);
-  }
+      return page
+        .evaluate()
+        .setTitle(`${TOURNEY_PREFIX} - Registration Period Over`);
+    }
   // abstract the state from the URL
   const state = e.parameter.state;
   // error parameter in the url = user denied either of the oauth provider's consent screens
@@ -85,30 +85,27 @@ function doGet(e) {
         .setTitle(`${TOURNEY_PREFIX} - Player Already Registered`);
     };
 
-    // appending one row to the end of the range
     const addToRange = [
-      [
-        new Date(),
-        user.id,
-        user.username,
-        user.rank,
-        user.pp,
-        user.statistics.play_count,
-        new Date(user.join_date),
-        user.badgeCount,
-        user.avatar_url,
-        user.country_code
-      ]
+      new Date(),
+      user.id,
+      user.username,
+      user.rank,
+      user.pp,
+      user.statistics.play_count,
+      new Date(user.join_date),
+      user.badgeCount,
+      user.avatar_url,
+      user.country_code
     ];
-    // start at the row directly after the last, first column and span 1 row, addToRange[0] columns
-    SS.getSheetByName(SHEET).getRange(range.getLastRow() + 1, 1, 1, addToRange[0].length).setValues(addToRange);
+    // append a row to the worksheet
+    SS.getSheetByName(SHEET).appendRow(addToRange);
     let page = HtmlService
       .createTemplateFromFile('Success')
     page.url = `https://discord.com/api/oauth2/authorize?client_id=${SECRET.discordClientId}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify%20guilds.join&state=discord.${user.id}`;
 
     return page
       .evaluate()
-      .setTitle(`${TOURNEY_PREFIX} - Player Registration`);
+      .setTitle(`${TOURNEY_PREFIX} - Player Registered Successfully`);
   }
 
   if (state.includes('discord')) {
