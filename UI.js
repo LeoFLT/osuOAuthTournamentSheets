@@ -34,32 +34,36 @@ function deleteUsersPrompt() {
 
 function showInstructions() {
   const UI = SpreadsheetApp.getUi();
-  let html = HtmlService.createTemplateFromFile('Setup-UI');
+  let html;
+  if (REDIRECT_URI) html = HtmlService.createTemplateFromFile('Setup-UI-2');
+  else html = HtmlService.createTemplateFromFile('Setup-UI-1');
+
   UI.showModalDialog(
     html.evaluate()
       .setWidth(1000)
-      .setHeight(1000), 'Sheet setup');
+      .setHeight(1000),
+    `Sheet setup - ${REDIRECT_URI ? 'Part 2' : 'Part 1'}`);
 }
 
 function setEnvVars() {
   const UI = SpreadsheetApp.getUi();
   const prompt = (title, message) => UI.prompt(title, message, UI.ButtonSet.OK_CANCEL);
-  
+
   let propertiesToAdd = {};
-  
-  const redirectUri = UI.prompt('Enter your project\'s Redirect Uri','Get it by deploying the Apps Script Project as a web app\n\nCancel: no change', UI.ButtonSet.OK_CANCEL);
+
+  const redirectUri = UI.prompt('Enter your project\'s Redirect Uri', 'Get it by deploying the Apps Script Project as a web app\n\nCancel: no change', UI.ButtonSet.OK_CANCEL);
   if (redirectUri.getSelectedButton() === UI.Button.OK) {
     const result = redirectUri.getResponseText().trim();
     propertiesToAdd.redirectUri = result;
     return PropertiesService.getScriptProperties().setProperties(propertiesToAdd);
   }
-  
+
   const tournamentAcronym = prompt('Enter your Tournament\'s acronym (e.g. My osu! Tournament => MOT)', 'Cancel: no change');
   if (tournamentAcronym.getSelectedButton() === UI.Button.OK) {
     const result = tournamentAcronym.getResponseText().trim();
     propertiesToAdd.tournamentAcronym = result;
   }
-  
+
   const tournamentMode = prompt('Enter the tournament mode', '1: Standard\n2: Mania\n3: Taiko\n4: Catch The Beat\n\nCancel: no change');
   if (tournamentMode.getSelectedButton() === UI.Button.OK) {
     const result = parseInt(tournamentMode.getResponseText().trim(), 10);
@@ -72,49 +76,49 @@ function setEnvVars() {
     }
     PropertiesService.getScriptProperties().setProperty('mode', finalResult);
   }
-  
+
   const osuClientIdPrompt = prompt('Enter your osu! OAuth Client ID', 'Cancel: no change');
   if (osuClientIdPrompt.getSelectedButton() === UI.Button.OK) {
     const result = osuClientIdPrompt.getResponseText().trim();
     propertiesToAdd.osuClientId = result;
     PropertiesService.getScriptProperties().setProperty('osuClientId', result);
   }
-  
+
   const osuClientSecretPrompt = prompt('Enter your osu! OAuth Client Secret', 'Cancel: no change');
   if (osuClientSecretPrompt.getSelectedButton() === UI.Button.OK) {
     const result = osuClientSecretPrompt.getResponseText().trim();
     propertiesToAdd.osuClientSecret = result;
     PropertiesService.getScriptProperties().setProperty('osuClientSecret', result);
   }
-  
+
   const discordClientIdPrompt = prompt('Enter your Discord OAuth Client ID', 'Cancel: no change');
   if (discordClientIdPrompt.getSelectedButton() === UI.Button.OK) {
     const result = discordClientIdPrompt.getResponseText().trim();
     propertiesToAdd.discordClientId = result;
     PropertiesService.getScriptProperties().setProperty('discordClientId', result);
   }
-  
+
   const discordClientSecretPrompt = prompt('Enter your Discord OAuth Client Secret', 'Cancel: no change');
   if (discordClientSecretPrompt.getSelectedButton() === UI.Button.OK) {
     const result = discordClientSecretPrompt.getResponseText().trim();
     propertiesToAdd.discordClientSecret = result;
     PropertiesService.getScriptProperties().setProperty('discordClientSecret', result);
   }
-  
+
   const discordBotToken = prompt('Enter your Discord Bot Token', 'Cancel: no change');
   if (discordBotToken.getSelectedButton() === UI.Button.OK) {
     const result = discordBotToken.getResponseText().trim();
     propertiesToAdd.discordBotToken = result;
     PropertiesService.getScriptProperties().setProperty('discordBotToken', result);
   }
-  
+
   const discordGuildId = prompt('Enter your Discord Guild ID', 'Cancel: no change');
   if (discordGuildId.getSelectedButton() === UI.Button.OK) {
     const result = discordGuildId.getResponseText().trim();
     propertiesToAdd.discordGuildId = result;
     PropertiesService.getScriptProperties().setProperty('result', result);
   }
-  
+
   const discordRoles = prompt('Enter your Discord player roles', '(separate with commas e.g. 123456789,987654321)\nCancel: no change');
   if (discordRoles.getSelectedButton() === UI.Button.OK) {
     const result = discordRoles.getResponseText().trim();

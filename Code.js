@@ -24,11 +24,7 @@ const GUILD = SECRET.discordGuildId;
 // query mode for players (standard/mania/taiko/ctb)
 const MODE = SECRET.mode;
 // Array of Discord Role IDs (snowflakes=strings) to add to players
-<<<<<<< HEAD:Code.js
 // stored as a string in the format '0123456789,1012131415' and split afterwards;
-=======
-// stored as a string in the format '1234567890,0987654321' and split;
->>>>>>> 8c3017faf3f1c0781b5592312c0d317cbd9e9f36:Code.gs
 const ROLES_TO_GIVE = SECRET.discordRoles;
 const TOURNEY_PREFIX = SECRET.tournamentAcronym;
 // working sheet, realistically the only thing you would change in this script
@@ -117,7 +113,6 @@ const getDiscordToken = ((authCode) => {
  */
 function queryUser(token) {
   const url = `https://osu.ppy.sh/api/v2/me/${MODE}`;
-  console.log(url);
   const fetchUser = UrlFetchApp.fetch(url, {
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -136,10 +131,10 @@ function queryUser(token) {
     .getValues()
     .flat(2)
     .filter(i => i);
-  
-  let expression = filterRange.join('|');
+
+  let expression = filterRange.slice(1).join('|');
   // crappy way to ignore badges based on a regexp but it works
-  const ignoredBadges = new RegExp(expression,'i');
+  const ignoredBadges = new RegExp(expression, 'i');
 
   for (badge in result.badges) {
     let currentBadge = result.badges[badge].description;
@@ -147,6 +142,7 @@ function queryUser(token) {
   }
   // shorthands for common stats
   result.rank = result.statistics.pp_rank;
+  result.pp = result.statistics.pp;
 
   // reduce potential cache size overflow
   result.page = null;
@@ -196,7 +192,6 @@ function discordJoinServer(token) {
     // member in guild
     if (method === 'patch') {
       urlGuilds += `/roles/${rolesToGive}`;
-      console.log(urlGuilds);
       const role = rolesToGive;
       // yes I called it 'patch' even though it actually 'put's the resource, fight me
       params.method = 'put';
@@ -282,17 +277,17 @@ function getUser(userId, mode) {
 
   let result = JSON.parse(response);
   result.badgeCount = 0;
-
+  
   let filterRange = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('_filtered_badges!A1')
     .getDataRegion(SpreadsheetApp.Dimension.ROWS)
     .getValues()
     .flat(2)
     .filter(i => i);
-  
-  let expression = filterRange.join('|');
-  // crappy way to ignore badges based on a regexp but it works
-  const ignoredBadges = new RegExp(expression,'i');
 
+  let expression = filterRange.slice(1).join('|');
+  // crappy way to ignore badges based on a regexp but it works
+  const ignoredBadges = new RegExp(expression, 'i');
+      console.log(expression, ignoredBadges);
   for (badge in result.badges) {
     let currentBadge = result.badges[badge].description;
     // if the badge's description (lowercased) doesn't match our regExp
@@ -302,6 +297,7 @@ function getUser(userId, mode) {
 
   // shorthands for common stats
   result.rank = result.statistics.pp_rank;
+  result.pp = result.statistics.pp;
   result.mode = gameMode;
 
   // reduce potential cache size overflow
@@ -331,7 +327,7 @@ function updateUsers() {
       row[1] += ' [RESTRICTED]';
       continue;
     }
-    else if (user.username) {
+    else if (user.hasOwnProperty(username)) {
       row[1] = user.username;
       row[2] = user.rank;
       row[3] = user.pp;
@@ -396,8 +392,20 @@ function doGet(e) {
     };
 
     // appending one row to the end of the range
-    const addToRange = [[new Date(), user.id, user.username, user.rank, user.badgeCount, user.avatar_url]];
-
+    const addToRange = [
+      [
+        new Date(),
+        user.id,
+        user.username,
+        user.rank,
+        user.pp,
+        user.statistics.play_count,
+        new Date(user.join_date),
+        user.badgeCount,
+        user.avatar_url,
+        user.country_code
+      ]
+    ];
     // start at the row directly after the last, first column and span 1 row, addToRange[0] columns
     SS.getSheetByName(SHEET).getRange(range.getLastRow() + 1, 1, 1, addToRange[0].length).setValues(addToRange);
     let page = HtmlService
@@ -455,8 +463,8 @@ function doGet(e) {
 }
 
 function bumpSheetVersion(bumpType) {
-  const rangeVersion = SS.getRange('Instructions!F39');
-  const rangeDate = SS.getRange('Instructions!G39');
+  const rangeVersion = SS.getRange('Instructions!F49');
+  const rangeDate = SS.getRange('Instructions!G49');
   const version = rangeVersion.getValue();
   let newVersion;
   let bump;
@@ -496,6 +504,6 @@ function projectVersioning() {
     .addToUi();
 }
 
-function bumpPatch() {return bumpSheetVersion('patch')}
-function bumpMinor() {return bumpSheetVersion('minor')}
-function bumpMajor() {return bumpSheetVersion('major')}
+function bumpPatch() { return bumpSheetVersion('patch') }
+function bumpMinor() { return bumpSheetVersion('minor') }
+function bumpMajor() { return bumpSheetVersion('major') }
