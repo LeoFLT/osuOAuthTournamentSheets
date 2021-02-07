@@ -468,7 +468,6 @@ function getUser(userId, mode) {
   let expression = filterRange.slice(1).join('|');
   // crappy way to ignore badges based on a regexp but it works
   const ignoredBadges = new RegExp(expression, 'i');
-  console.log(expression, ignoredBadges);
   for (badge in result.badges) {
     let currentBadge = result.badges[badge].description;
     // if the badge's description (lowercased) doesn't match our regExp
