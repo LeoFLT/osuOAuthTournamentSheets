@@ -44,7 +44,15 @@
 			<li>Example 2: After first setting up the sheet,<br>you realise that you want to give an additional role to your players.<br>You need to re-deploy it.</li>
 		</ul>
 	</div>
-	If you make updates to any project files you will need to re-deploy your project.
+	If you make updates to any project files you will need to re-deploy your project.<br>
+	This can lead to having multiple versions of your script deployed at the same time.<br>
+	NEVER use URLs ending in /dev, as those are meant for development<br>and need the user to login with a google account affiliated with the script to work.<br>
+	<br>
+	You can check how many versions are deployed inside the Apps Script editor, by clicking the "Publish > Deploy from manifest..." menu button.<br>
+	<img src="https://i.imgur.com/JOCTRnW.png">
+	<br>
+	In this example, there is only one deployment (Latest Version refers, as the name suggests, to the latest deployment).<br>Clicking on the arrow shows the Deployment URL.
+	<h2><b>Always pay attention to the Redirect URI that you use for both sites (osu!/Discord)</b></h2>
 	<br>
 	<br>
 	Now take the URL you saved and click on Set Script Properties

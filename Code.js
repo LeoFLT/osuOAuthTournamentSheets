@@ -57,7 +57,8 @@ function doGet(e) {
     page.forumPostURL = FORUM_POST_URL;
     page.tourAcronym = TOURNEY_PREFIX;
 
-    return page.evaluate()
+    return page
+      .evaluate()
       .setTitle(`${TOURNEY_PREFIX} - Authorization Failed`);
   }
   // no state = nothing to do
@@ -66,7 +67,7 @@ function doGet(e) {
     page.forumPostURL = FORUM_POST_URL;
     page.tourAcronym = TOURNEY_PREFIX;
 
-    return page.evaluate()
+    return page
       .evaluate()
       .setTitle(`${TOURNEY_PREFIX} - Unauthorized`);
   }
@@ -78,9 +79,9 @@ function doGet(e) {
       page.forumPostURL = FORUM_POST_URL;
       page.tourAcronym = TOURNEY_PREFIX;
 
-      return page.evaluate()
-      .evaluate()
-      .setTitle(`${TOURNEY_PREFIX} - Unauthorized`);
+      return page
+        .evaluate()
+        .setTitle(`${TOURNEY_PREFIX} - Unauthorized`);
     }
     const authToken = getOsuToken(token);
     if (!authToken) {
@@ -88,9 +89,9 @@ function doGet(e) {
       page.forumPostURL = FORUM_POST_URL;
       page.tourAcronym = TOURNEY_PREFIX;
 
-      return page.evaluate()
-      .evaluate()
-      .setTitle(`${TOURNEY_PREFIX} - Unauthorized`);
+      return page
+        .evaluate()
+        .setTitle(`${TOURNEY_PREFIX} - Unauthorized`);
     }
     const user = queryUser(authToken);
     if (!user) {
@@ -98,7 +99,7 @@ function doGet(e) {
       page.forumPostURL = FORUM_POST_URL;
       page.tourAcronym = TOURNEY_PREFIX;
 
-      return page.evaluate()
+      return page
         .evaluate()
         .setTitle(`${TOURNEY_PREFIX} - Error`);
     }
@@ -202,7 +203,8 @@ function doGet(e) {
       page.username = username;
       page.forumPostURL = FORUM_POST_URL;
 
-      return page.evaluate()
+      return page
+        .evaluate()
         .setTitle(`${TOURNEY_PREFIX} - Player Already Registered`);
     }
   }
@@ -210,6 +212,7 @@ function doGet(e) {
     let page = HtmlService.createTemplateFromFile('Unauthorized');
     page.tourAcronym = TOURNEY_PREFIX;
     page.forumPostURL = FORUM_POST_URL;
+    
     return page
       .evaluate()
       .setTitle(`${TOURNEY_PREFIX} - Error`);
