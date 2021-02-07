@@ -17,9 +17,17 @@
 			text-align: left;
 		}
 	</style>
+	<script>
+		function discordInfoPresent() {
+			if (google.script.run)
+	}
+	</script>
 </head>
 
 <body>
+	<? if (discordInfoPresent) { ?>
+		<h2><a href="https://discord.com/oauth2/authorize?client_id=<?= discordClientId ?>&permissions=402653184&scope=bot&guild_id=<?= discordGuildId ?>">Bot Invite Link</a></h2>
+	<? } ?>
 	<b>Link for registering:</b><br>
 	This is also the link you should put on the forum post: <br>
 	<a href="<?= returnForumURL() ?>">Link for registering (right click -> 'copy link address')</a>
@@ -73,6 +81,8 @@
 	<b>Click Spreadsheet Settings, then click 'Set Script Properties' and paste, item-by-item:</b>
 	<br>(pressing Ok with an empty field zeroes that field, pressing Cancel leaves it unchanged)
 	<img src="https://i.imgur.com/YQjVhSj.png" width="950">
+	<br>
+	<h2><b>After doing these steps, you need to invite the bot to your server. After you set the script properties relating to Discord, a link will appear as the top of this popup. You need to click that link to add the bot to your server. It NEEDS the permissions listed on the Discord authorization page or it WILL break. Additionally, the bot's highest Role needs to be higher than the Role(s) it will give to the players.</b></h2>
 </body>
 
 </html>

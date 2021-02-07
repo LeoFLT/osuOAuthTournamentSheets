@@ -38,6 +38,14 @@ function showInstructions() {
   if (REDIRECT_URI) html = HtmlService.createTemplateFromFile('Setup-UI-2');
   else html = HtmlService.createTemplateFromFile('Setup-UI-1');
 
+  if (SECRET.hasOwnProperty('discordClientId') && SECRET.hasOwnProperty('discordGuildId')) {
+    html.discordInfoPresent = true;
+    html.discordClientId = SECRET.discordClientId;
+    html.discordGuildId = SECRET.discordGuildId;
+  } else {
+    html.discordInfoPresent = false;
+  }
+
   UI.showModalDialog(
     html.evaluate()
       .setWidth(1000)
@@ -61,7 +69,7 @@ function setEnvVars() {
     PropertiesService.getScriptProperties().setProperty('tournamentAcronym', result);
   }
 
-  const tournamentModePrompt = prompt('Enter the tournament game mode', `1: Standard\n2: Mania\n3: Taiko\n4: Catch The Beat\n\nCurrent mode: ${SECRET.mode ? SECRET.mode : 'No mode set'}\n\nCancel: no change`);
+  const tournamentModePrompt = prompt('Enter the tournament game mode', `1: osu\n2: mania\n3: taiko\n4: fruits\n\nCurrent mode: ${SECRET.mode ? SECRET.mode : 'No mode set'}\n\nCancel: no change`);
   if (tournamentModePrompt.getSelectedButton() === UI.Button.OK) {
     const result = parseInt(tournamentModePrompt.getResponseText().trim(), 10);
     let finalResult;

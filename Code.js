@@ -109,7 +109,7 @@ function doGet(e) {
     if (userIsPresent) {
       let page = HtmlService.createTemplateFromFile('Already-registered')
       page.tourAcronym = TOURNEY_PREFIX;
-      page.url = `https://discord.com/api/oauth2/authorize?client_id=${SECRET.discordClientId}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify%20guilds.join&state=discord${user.id}%20nick${user.username}`;
+      page.url = `https://discord.com/api/oauth2/authorize?client_id=${SECRET.discordClientId}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify%20guilds.join&state=discord${user.id}%20nick${user.username}&prompt=none`;
       page.id = user.id;
       page.username = user.username;
       page.forumPostURL = FORUM_POST_URL;
@@ -136,7 +136,7 @@ function doGet(e) {
     SS.getSheetByName(SHEET).appendRow(addToRange);
     let page = HtmlService
       .createTemplateFromFile('Registration-Success')
-    page.url = `https://discord.com/api/oauth2/authorize?client_id=${SECRET.discordClientId}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify%20guilds.join&state=discord${user.id}%20nick${user.username}`;
+    page.url = `https://discord.com/api/oauth2/authorize?client_id=${SECRET.discordClientId}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify%20guilds.join&state=discord${user.id}%20nick${user.username}&prompt=none`;
     page.id = user.id;
     page.username = user.username;
     page.forumPostURL = FORUM_POST_URL;
@@ -156,9 +156,9 @@ function doGet(e) {
       page.forumPostURL = FORUM_POST_URL;
       page.tourAcronym = TOURNEY_PREFIX;
 
-      return page.evaluate()
-      .evaluate()
-      .setTitle(`${TOURNEY_PREFIX} - Error`)
+      return page
+        .evaluate()
+        .setTitle(`${TOURNEY_PREFIX} - Error`)
     }
     const regExpId = /^(?:discord)(\d+)/ig;
     const regExpNick = /^(?:discord\d+ nick)(.+)/ig;
@@ -188,7 +188,8 @@ function doGet(e) {
       page.username = username;
       page.forumPostURL = FORUM_POST_URL;
 
-      return page.evaluate()
+      return page
+        .evaluate()
         .setTitle(`${TOURNEY_PREFIX} - Server joined successfully`);
     }
     // 204: member already joined the server, roles added
@@ -206,9 +207,12 @@ function doGet(e) {
     }
   }
   else {
-    return HtmlService.createTemplateFromFile('Unauthorized')
+    let page = HtmlService.createTemplateFromFile('Unauthorized');
+    page.tourAcronym = TOURNEY_PREFIX;
+    page.forumPostURL = FORUM_POST_URL;
+    return page
       .evaluate()
-      .setTitle(`${TOURNEY_PREFIX} - Error`)
+      .setTitle(`${TOURNEY_PREFIX} - Error`);
   }
 }
 
