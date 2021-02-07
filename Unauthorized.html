@@ -3,27 +3,51 @@
 
 <head>
 	<base target="_top">
+	<title>Test</title>
 	<link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Noto Sans">
+	<link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 	<style>
 		body {
-			font-family: 'Noto Sans', serif;
-			font-size: 24px;
-			text-align: center;
 			background-color: #36393f;
 		}
 
-		h1 {
-			color: #ffffff;
+		.container {
+			font-family: 'Noto Sans', serif;
 		}
 
-		p {
+		.container .flow-text {
+			font-size: 50px;
+			text-align: center;
+			color: #fff;
+		}
+
+		.container p {
+			font-size: 25px;
+			text-align: center;
 			color: #b9bbbe;
+		}
+
+		.container .main {
+			font-size: 28px;
+			text-align: center;
+			color: #b9bbbe;
+			margin: 0 100px;
 		}
 	</style>
 </head>
 
 <body>
-	<h1>You shouldn't be here. Close the window and try again.</h1>
+	<nav class="deep-purple">
+		<div class="nav-wrapper container">
+			<a href="<?= forumPostURL ?>" class="brand-logo left">
+				<?= tourAcronym ?>
+			</a>
+		</div>
+	</nav>
+	<h1 class="flow-text">You shouldn't be here. Close the window and try again.</h1>
 </body>
 
 </html>

@@ -49,21 +49,21 @@ function setEnvVars() {
   const UI = SpreadsheetApp.getUi();
   const prompt = (title, message) => UI.prompt(title, message, UI.ButtonSet.OK_CANCEL);
 
-  const redirectUri = UI.prompt('Enter your project\'s Redirect Uri', 'Get it by deploying the Apps Script Project as a web app\n\nCancel: no change', UI.ButtonSet.OK_CANCEL);
-  if (redirectUri.getSelectedButton() === UI.Button.OK) {
-    const result = redirectUri.getResponseText().trim();
+  const redirectUriPrompt = UI.prompt('Enter your project\'s Redirect Uri', 'Get it by deploying the Apps Script Project as a web app\n\nCancel: no change', UI.ButtonSet.OK_CANCEL);
+  if (redirectUriPrompt.getSelectedButton() === UI.Button.OK) {
+    const result = redirectUriPrompt.getResponseText().trim();
     return PropertiesService.getScriptProperties().setProperty('redirectUri', result);
   }
 
-  const tournamentAcronym = prompt('Enter your Tournament\'s acronym (e.g. My osu! Tournament => MOT)', `Current acronym: ${SECRET.acronym ? SECRET.acronym : 'No acronym set'}\n\nCancel: no change`);
-  if (tournamentAcronym.getSelectedButton() === UI.Button.OK) {
-    const result = tournamentAcronym.getResponseText().trim();
+  const tournamentAcronymPrompt = prompt('Enter your Tournament\'s acronym (e.g. My osu! Tournament => MOT)', `Current acronym: ${SECRET.tournamentAcronym ? SECRET.tournamentAcronym : 'No acronym set'}\n\nCancel: no change`);
+  if (tournamentAcronymPrompt.getSelectedButton() === UI.Button.OK) {
+    const result = tournamentAcronymPrompt.getResponseText().trim();
     PropertiesService.getScriptProperties().setProperty('tournamentAcronym', result);
   }
 
-  const tournamentMode = prompt('Enter the tournament game mode', `1: Standard\n2: Mania\n3: Taiko\n4: Catch The Beat\n\nCurrent mode: ${SECRET.mode ? SECRET.mode : 'No mode set'}\n\nCancel: no change`);
-  if (tournamentMode.getSelectedButton() === UI.Button.OK) {
-    const result = parseInt(tournamentMode.getResponseText().trim(), 10);
+  const tournamentModePrompt = prompt('Enter the tournament game mode', `1: Standard\n2: Mania\n3: Taiko\n4: Catch The Beat\n\nCurrent mode: ${SECRET.mode ? SECRET.mode : 'No mode set'}\n\nCancel: no change`);
+  if (tournamentModePrompt.getSelectedButton() === UI.Button.OK) {
+    const result = parseInt(tournamentModePrompt.getResponseText().trim(), 10);
     let finalResult;
     switch (result) {
       case 2: finalResult = 'mania'; break;
@@ -74,10 +74,16 @@ function setEnvVars() {
     PropertiesService.getScriptProperties().setProperty('mode', finalResult);
   }
 
-  const registrationEndDate = prompt('Enter your registration deadline', `Current end date: ${REGISTRATION_END_DATE ? REGISTRATION_END_DATE : 'No end date set (signups open forever)'}\n\nFormat: ${new Date().toUTCString()}\n\nTimezone codes are supported (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date#several_ways_to_create_a_date_object)\n\nLeave the field empty to have signups always open\n\nCancel: no change`,)
-  if (registrationEndDate.getSelectedButton() === UI.Button.OK) {
-    const result = registrationEndDate.getResponseText().trim();
+  const registrationEndDatePrompt = prompt('Enter your registration deadline', `Current end date: ${REGISTRATION_END_DATE ? REGISTRATION_END_DATE : 'No end date set (signups open forever)'}\n\nFormat: ${new Date().toUTCString()}\n\nTimezone codes are supported (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date#several_ways_to_create_a_date_object)\n\nLeave the field empty to have signups always open\n\nCancel: no change`,)
+  if (registrationEndDatePrompt.getSelectedButton() === UI.Button.OK) {
+    const result = registrationEndDatePrompt.getResponseText().trim();
     PropertiesService.getScriptProperties().setProperty('registrationEndDate', result);
+  }
+
+  const forumPostUrlPrompt = prompt('Enter your Forum Post URL', `Current Forum Post URL: ${FORUM_POST_URL ? FORUM_POST_URL : 'No URL set (set to https://osu.ppy.sh/home)'}\n\nCancel: no change`,)
+  if (forumPostUrlPrompt.getSelectedButton() === UI.Button.OK) {
+    const result = forumPostUrlPrompt.getResponseText().trim();
+    PropertiesService.getScriptProperties().setProperty('forumPostURL', result);
   }
 
   const osuClientIdPrompt = prompt('Enter your osu! OAuth Client ID', `Current osu! OAuth Client ID: ${SECRET.osuClientId ? SECRET.osuClientId : 'No osu! Client ID set'}\n\nCancel: no change`);
@@ -104,21 +110,21 @@ function setEnvVars() {
     PropertiesService.getScriptProperties().setProperty('discordClientSecret', result);
   }
 
-  const discordBotToken = prompt('Enter your Discord Bot Token', `Current Discord Bot Token: ${SECRET.discordBotToken ? SECRET.discordBotToken : 'No Discord bot token set'}\n\nCancel: no change`);
-  if (discordBotToken.getSelectedButton() === UI.Button.OK) {
-    const result = discordBotToken.getResponseText().trim();
+  const discordBotTokenPrompt = prompt('Enter your Discord Bot Token', `Current Discord Bot Token: ${SECRET.discordBotToken ? SECRET.discordBotToken : 'No Discord bot token set'}\n\nCancel: no change`);
+  if (discordBotTokenPrompt.getSelectedButton() === UI.Button.OK) {
+    const result = discordBotTokenPrompt.getResponseText().trim();
     PropertiesService.getScriptProperties().setProperty('discordBotToken', result);
   }
 
-  const discordGuildId = prompt('Enter your Discord Guild ID', `Current Discord Guild ID: ${SECRET.discordGuildId ? SECRET.discordGuildId : 'No Discord Guild ID set'}\n\nCancel: no change`);
-  if (discordGuildId.getSelectedButton() === UI.Button.OK) {
-    const result = discordGuildId.getResponseText().trim();
-    PropertiesService.getScriptProperties().setProperty('result', result);
+  const discordGuildIdPrompt = prompt('Enter your Discord Guild ID', `Current Discord Guild ID: ${SECRET.discordGuildId ? SECRET.discordGuildId : 'No Discord Guild ID set'}\n\nCancel: no change`);
+  if (discordGuildIdPrompt.getSelectedButton() === UI.Button.OK) {
+    const result = discordGuildIdPrompt.getResponseText().trim();
+    PropertiesService.getScriptProperties().setProperty('discordGuildId', result);
   }
 
-  const discordRoles = prompt('Enter your Discord Player Roles', `Current Discord Player Role(s): ${SECRET.discordRoles ? SECRET.discordRoles : 'No Discord Player Roles set'}\n\n(separate multiple Roles with commas e.g. 123456789,987654321)\n\nCancel: no change`);
-  if (discordRoles.getSelectedButton() === UI.Button.OK) {
-    const result = discordRoles.getResponseText().trim();
+  const discordRolesPrompt = prompt('Enter your Discord Player Roles', `Current Discord Player Role(s): ${SECRET.discordRoles ? SECRET.discordRoles : 'No Discord Player Roles set'}\n\n(separate multiple Roles with commas e.g. 123456789,987654321)\n\nCancel: no change`);
+  if (discordRolesPrompt.getSelectedButton() === UI.Button.OK) {
+    const result = discordRolesPrompt.getResponseText().trim();
     let finalResult = result.trim().replace(/\s/g, '');
     PropertiesService.getScriptProperties().setProperty('discordRoles', finalResult);
   }
