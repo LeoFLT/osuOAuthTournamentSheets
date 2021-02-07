@@ -5,6 +5,7 @@ const SS = SpreadsheetApp.getActiveSpreadsheet();
  * mode: number,
  * tournamentAcronym: string,
  * redirectUri: string,
+ * registrationEndDate: string,
  * osuClientId: string, 
  * osuClientSecret: string,
  * discordClientId: string,
@@ -27,8 +28,133 @@ const MODE = SECRET.mode;
 // stored as a string in the format '0123456789,1012131415' and split afterwards;
 const ROLES_TO_GIVE = SECRET.discordRoles;
 const TOURNEY_PREFIX = SECRET.tournamentAcronym;
+// The date after which new registrations will not be allowed
+const REGISTRATION_END_DATE = SECRET.registrationEndDate;
 // working sheet, realistically the only thing you would change in this script
 const SHEET = '_DATA';
+
+// endDate.toUTCString().replace('GMT', 'UTC')
+// this is the code that gets executed when the REDIRECT_URI is called from a browser
+function doGet(e) {
+  const date = new Date().getTime();
+  if (date && (date > REGISTRATION_END_DATE.getTime())) {
+    let page = HtmlService
+      .createTemplateFromFile('Registration-Over');
+    page.endDate = REGISTRATION_END_DATE.toUTCString().replace('GMT', 'UTC');
+    page.forumPostURL = FORUM_POST;
+
+    return page
+      .evaluate()
+      .setTitle(`${TOURNEY_PREFIX} - Registration Period Over`);
+  }
+  // abstract the state from the URL
+  const state = e.parameter.state;
+  // error parameter in the url = user denied either of the oauth provider's consent screens
+  if (e.parameter.hasOwnProperty('error')) {
+    return HtmlService.createTemplateFromFile('Access-denied')
+      .evaluate()
+      .setTitle(`${TOURNEY_PREFIX} - Authorization Failed`);
+  }
+  // no state = nothing to do
+  if (!state) {
+    return HtmlService.createTemplateFromFile('Unauthorized')
+      .evaluate()
+      .setTitle(`${TOURNEY_PREFIX} - Unauthorized`);
+  }
+  if (state === 'osu') {
+    // abstract the code from the URL
+    const token = e.parameter.code;
+    if (!token) return HtmlService.createHtmlOutputFromFile('Unauthorized');
+    const authToken = getOsuToken(token);
+    if (!authToken) return HtmlService.createHtmlOutputFromFile('Unauthorized');
+    const user = queryUser(authToken);
+    if (!user) {
+      return HtmlService.createTemplateFromFile('Error')
+        .evaluate()
+        .setTitle(`${TOURNEY_PREFIX} - Error`);
+    }
+    // get a range delimited by the dimensions where there is data (equivalent to Ctrl + A)
+    const range = SS.getRange(`${SHEET}!A1`).getDataRegion();
+    // range = [[header_id, header_username, header_rank, header_badge_count, header_avatar_url]]
+    const userIsPresent = range.getValues().some(r => r[1] === user.id);
+    if (userIsPresent) {
+      let page = HtmlService.createTemplateFromFile('Already-registered')
+      page.url = `https://discord.com/api/oauth2/authorize?client_id=${SECRET.discordClientId}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify%20guilds.join&state=discord.${user.id}`;
+      return page
+        .evaluate()
+        .setTitle(`${TOURNEY_PREFIX} - Player Already Registered`);
+    };
+
+    // appending one row to the end of the range
+    const addToRange = [
+      [
+        new Date(),
+        user.id,
+        user.username,
+        user.rank,
+        user.pp,
+        user.statistics.play_count,
+        new Date(user.join_date),
+        user.badgeCount,
+        user.avatar_url,
+        user.country_code
+      ]
+    ];
+    // start at the row directly after the last, first column and span 1 row, addToRange[0] columns
+    SS.getSheetByName(SHEET).getRange(range.getLastRow() + 1, 1, 1, addToRange[0].length).setValues(addToRange);
+    let page = HtmlService
+      .createTemplateFromFile('Success')
+    page.url = `https://discord.com/api/oauth2/authorize?client_id=${SECRET.discordClientId}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify%20guilds.join&state=discord.${user.id}`;
+
+    return page
+      .evaluate()
+      .setTitle(`${TOURNEY_PREFIX} - Player Registration`);
+  }
+
+  if (state.includes('discord')) {
+    // abstracting auth code from url
+    const token = e.parameter.code;
+    const authToken = getDiscordToken(token);
+    if (!authToken) {
+      return HtmlService.createTemplateFromFile('Unauthorized')
+        .evaluate()
+        .setTitle(`${TOURNEY_PREFIX} - Error`)
+    };
+    const regexp = /^(?:discord.)(\d+)$/ig;
+    const uid = parseInt(regexp.exec(e.parameter.state)[1], 10);
+    let query = discordJoinServer(authToken);
+
+    const range = SS.getRange(`${SHEET}!A1`).getDataRegion();
+    let data = range.getValues();
+    let i = 1;
+    let insertRow;
+    for (row of data) {
+      if (row[1] === uid) {
+        insertRow = i;
+        break;
+      } i++;
+    }
+    // finding the row where the osu! userID is and associating the Discord Tag + Discord userID to it 
+    SS.getSheetByName(SHEET).getRange(insertRow, range.getLastColumn() - 1, 1, 2).setValues([[query.discordTag, query.discordId]]);
+    // 201: member succesffully joined the server
+    if (query.response === 201) {
+      return HtmlService.createTemplateFromFile('Discord201')
+        .evaluate()
+        .setTitle(`${TOURNEY_PREFIX} - Server joined successfully`);
+    };
+    // 204: member already joined the server, roles added
+    if (query.response === 204) {
+      return HtmlService.createTemplateFromFile('Discord204')
+        .evaluate()
+        .setTitle(`${TOURNEY_PREFIX} - Player Already Registered`);
+    }
+  }
+  else {
+    return HtmlService.createTemplateFromFile('Unauthorized')
+      .evaluate()
+      .setTitle(`${TOURNEY_PREFIX} - Error`)
+  };
+}
 
 // URL to be used on the forum post (maybe shorten it?)
 function returnForumURL(returnUriOnly) {
@@ -277,7 +403,7 @@ function getUser(userId, mode) {
 
   let result = JSON.parse(response);
   result.badgeCount = 0;
-  
+
   let filterRange = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('_filtered_badges!A1')
     .getDataRegion(SpreadsheetApp.Dimension.ROWS)
     .getValues()
@@ -287,7 +413,7 @@ function getUser(userId, mode) {
   let expression = filterRange.slice(1).join('|');
   // crappy way to ignore badges based on a regexp but it works
   const ignoredBadges = new RegExp(expression, 'i');
-      console.log(expression, ignoredBadges);
+  console.log(expression, ignoredBadges);
   for (badge in result.badges) {
     let currentBadge = result.badges[badge].description;
     // if the badge's description (lowercased) doesn't match our regExp
@@ -349,117 +475,6 @@ function deleteUsers() {
   const range = SS.getRangeByName(`${SHEET}!A1`).getDataRegion();
   const rangeToDelete = [2, 1, range.getLastRow(), range.getLastColumn()];
   return SS.getSheetByName(`${SHEET}`).getRange(...rangeToDelete).clearContent();
-}
-
-// this is the code that gets executed when the REDIRECT_URI is called
-function doGet(e) {
-  // abstract the state from the URL
-  const state = e.parameter.state;
-  // error parameter in the url = user denied either of the oauth provider's consent screens
-  if (e.parameter.hasOwnProperty('error')) {
-    return HtmlService.createTemplateFromFile('Access-denied')
-      .evaluate()
-      .setTitle(`${TOURNEY_PREFIX} - Authorization Failed`);
-  }
-  // no state = nothing to do
-  if (!state) {
-    return HtmlService.createTemplateFromFile('Unauthorized')
-      .evaluate()
-      .setTitle(`${TOURNEY_PREFIX} - Unauthorized`);
-  };
-  if (state === 'osu') {
-    // abstract the code from the URL
-    const token = e.parameter.code;
-    if (!token) return HtmlService.createHtmlOutputFromFile('Unauthorized');
-    const authToken = getOsuToken(token);
-    if (!authToken) return HtmlService.createHtmlOutputFromFile('Unauthorized');
-    const user = queryUser(authToken);
-    if (!user) {
-      return HtmlService.createTemplateFromFile('Error')
-        .evaluate()
-        .setTitle(`${TOURNEY_PREFIX} - Error`);
-    }
-    // get a range delimited by the dimensions where there is data (equivalent to Ctrl + A)
-    const range = SS.getRange(`${SHEET}!A1`).getDataRegion();
-    // range = [[header_id, header_username, header_rank, header_badge_count, header_avatar_url]]
-    const userIsPresent = range.getValues().some(r => r[1] === user.id);
-    if (userIsPresent) {
-      let page = HtmlService.createTemplateFromFile('Already-registered')
-      page.url = `https://discord.com/api/oauth2/authorize?client_id=${SECRET.discordClientId}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify%20guilds.join&state=discord.${user.id}`;
-      return page
-        .evaluate()
-        .setTitle(`${TOURNEY_PREFIX} - Player Already Registered`);
-    };
-
-    // appending one row to the end of the range
-    const addToRange = [
-      [
-        new Date(),
-        user.id,
-        user.username,
-        user.rank,
-        user.pp,
-        user.statistics.play_count,
-        new Date(user.join_date),
-        user.badgeCount,
-        user.avatar_url,
-        user.country_code
-      ]
-    ];
-    // start at the row directly after the last, first column and span 1 row, addToRange[0] columns
-    SS.getSheetByName(SHEET).getRange(range.getLastRow() + 1, 1, 1, addToRange[0].length).setValues(addToRange);
-    let page = HtmlService
-      .createTemplateFromFile('Success')
-    page.url = `https://discord.com/api/oauth2/authorize?client_id=${SECRET.discordClientId}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify%20guilds.join&state=discord.${user.id}`;
-
-    return page
-      .evaluate()
-      .setTitle(`${TOURNEY_PREFIX} - Player Registration`);
-  }
-
-  if (state.includes('discord')) {
-    // abstracting auth code from url
-    const token = e.parameter.code;
-    const authToken = getDiscordToken(token);
-    if (!authToken) {
-      return HtmlService.createTemplateFromFile('Unauthorized')
-        .evaluate()
-        .setTitle(`${TOURNEY_PREFIX} - Error`)
-    };
-    const regexp = /^(?:discord.)(\d+)$/ig;
-    const uid = parseInt(regexp.exec(e.parameter.state)[1], 10);
-    let query = discordJoinServer(authToken);
-
-    const range = SS.getRange(`${SHEET}!A1`).getDataRegion();
-    let data = range.getValues();
-    let i = 1;
-    let insertRow;
-    for (row of data) {
-      if (row[1] === uid) {
-        insertRow = i;
-        break;
-      } i++;
-    }
-    // finding the row where the osu! userID is and associating the Discord Tag + Discord userID to it 
-    SS.getSheetByName(SHEET).getRange(insertRow, range.getLastColumn() - 1, 1, 2).setValues([[query.discordTag, query.discordId]]);
-    // 201: member succesffully joined the server
-    if (query.response === 201) {
-      return HtmlService.createTemplateFromFile('Discord201')
-        .evaluate()
-        .setTitle(`${TOURNEY_PREFIX} - Server joined successfully`);
-    };
-    // 204: member already joined the server, roles added
-    if (query.response === 204) {
-      return HtmlService.createTemplateFromFile('Discord204')
-        .evaluate()
-        .setTitle(`${TOURNEY_PREFIX} - Player Already Registered`);
-    }
-  }
-  else {
-    return HtmlService.createTemplateFromFile('Unauthorized')
-      .evaluate()
-      .setTitle(`${TOURNEY_PREFIX} - Error`)
-  };
 }
 
 function bumpSheetVersion(bumpType) {
