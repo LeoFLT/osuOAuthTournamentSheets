@@ -20,38 +20,46 @@
 </head>
 
 <body>
-	<b>First of all, deploy the Script as a web app:</b>
-	<br>
-	<img src="https://i.imgur.com/jK0vG78.png">
+	<b>First of all, deploy the Script as a web app. To do so, open<br>
+	the Google Apps Script project for the current
+	sheet using <a href="https://script.google.com/d/<?= ScriptApp.getScriptId() ?>/edit">this link</a></b>
 	<br>
 	Change to the legacy editor
 	<br>
 	<img src="https://i.imgur.com/dQGONum.png">
 	<br>
+	<br>
 	Deploy the script as a Web App via the "Publish > Deploy as a web app..." menu:
 	<br>
 	<img src="https://i.imgur.com/dFYso8W.png">
+	<br>
 	<br>
 	Finally, give it a description of your liking, ALWAYS change "Project Version" to "New", then press on the "Update"
 	button and copy the URL it gives you.
 	<br>
 	<img src="https://i.imgur.com/hcJyk5A.png">
 	<br>
-	<h2>One important thing to note is that you have to repeat this step<br>every time you change the contents of the script files.</h2>
+	<h2>One important thing to note is that you have to repeat this step<br>every time you change the contents of the
+		script files.</h2>
 	<div class="list">
 		<ul>
-			<li>Example 1: You decided to customize your registration<br>process using HTML/CSS frameworks.<br>You need to re-deploy it.</li><br>
-			<li>Example 2: After first setting up the sheet,<br>you realise that you want to give an additional role to your players.<br>You need to re-deploy it.</li>
+			<li>Example 1: You decided to customize your registration<br>process using HTML/CSS frameworks.<br>You need
+				to re-deploy it.</li><br>
+			<li>Example 2: After first setting up the sheet,<br>you realise that you want to give an additional role to
+				your players.<br>You need to re-deploy it.</li>
 		</ul>
 	</div>
 	If you make updates to any project files you will need to re-deploy your project.<br>
 	This can lead to having multiple versions of your script deployed at the same time.<br>
-	NEVER use URLs ending in /dev, as those are meant for development<br>and need the user to login with a google account affiliated with the script to work.<br>
+	NEVER use URLs ending in /dev, as those are meant for development<br>and need the user to login with a google
+	account affiliated with the script to work.<br>
 	<br>
-	You can check how many versions are deployed inside the Apps Script editor, by clicking the "Publish > Deploy from manifest..." menu button.<br>
+	You can check how many versions are deployed inside the Apps Script editor, by clicking the "Publish > Deploy from
+	manifest..." menu button.<br>
 	<img src="https://i.imgur.com/JOCTRnW.png">
 	<br>
-	In this example, there is only one deployment (Latest Version refers, as the name suggests, to the latest deployment).<br>Clicking on the arrow shows the Deployment URL.
+	In this example, there is only one deployment (Latest Version refers, as the name suggests, to the latest
+	deployment).<br>Clicking on the arrow shows the Deployment URL.
 	<h2><b>Always pay attention to the Redirect URI that you use for both sites (osu!/Discord)</b></h2>
 	<br>
 	<br>
