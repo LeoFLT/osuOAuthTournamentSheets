@@ -13,15 +13,14 @@
 			<div class="left"><img src="https://a.ppy.sh/<?= id ?>" id="img-avatar"></div>
 				<div class="player-align left">
 					<p><a href="https://osu.ppy.sh/users/<?= id ?>"><?= username ?></a></p>
-					<p id="rank">#<?= rank ?></p>
+					<p id="rank"><?= discord_tag ?></p>
 				</div>
 			</div>
 	</nav>
 	<div class="container">
 		<div class="main">
-			<h1 id="text-header">You already registered</h1>
-			<p id="text-body">Try clicking <a href='<?= url ?>'>this link</a> to get the Discord player role/join the server.
-			</p>
+			<h1 id="text-header"><?= outcome ?></h1>
+			<p id="text-body">You may now close this page.</p>
 		</div>
 	</div>
 </body>

@@ -3,6 +3,9 @@ const SS = SpreadsheetApp.getActiveSpreadsheet();
 /**
  * @type {{
  * mode: number,
+ * tournamentName: string,
+ * tournamentIcon: string,
+ * forumPostURL: string,
  * tournamentAcronym: string,
  * redirectUri: string,
  * registrationEndDate: string,
@@ -27,97 +30,163 @@ const MODE = SECRET.mode;
 // Array of Discord Role IDs (snowflakes=strings) to add to players
 // stored as a string in the format '0123456789,1012131415' and split afterwards;
 const ROLES_TO_GIVE = SECRET.discordRoles ? SECRET.discordRoles.split(',') : '';
-const TOURNEY_PREFIX = SECRET.tournamentAcronym;
+const TOURNAMENT_NAME = SECRET.tournamentName;
+const TOURNAMENT_ACRONYM = SECRET.tournamentAcronym;
+const TOURNAMENT_ICON = SECRET.tournamentIcon ? SECRET.tournamentIcon : '';
 const FORUM_POST_URL = SECRET.forumPostURL ? SECRET.forumPostURL : 'https://osu.ppy.sh/home';
 // The date after which new registrations will not be allowed
 const REGISTRATION_END_DATE = SECRET.registrationEndDate ? new Date(SECRET.registrationEndDate) : '';
 // working sheet, realistically the only thing you would change in this script
 const SHEET = '_DATA';
 
-// endDate.toUTCString().replace('GMT', 'UTC')
+/**
+ * Dictionary object for generating OAuth2 redirect URLs 
+ */
+const GenerateURI = {
+  /**
+   * @property {string} osu Generate an osu! OAuth2 URI
+   */
+  osu: `https://osu.ppy.sh/oauth/authorize?client_id=${SECRET.osuClientId}&redirect_uri=${SECRET.redirectUri}&response_type=code&scope=identify&state=%7B%22step%22%3A%22osu%22%7D`,
+  /**
+   * @param {{id: number, username: string}} params The parameters to feed into the URL
+   */
+  discord: (params) => `https://discord.com/api/oauth2/authorize?client_id=${SECRET.discordClientId}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify%20guilds.join&state=%7B%22step%22%3A%22discord%22%2C%22osu_id%22%3A%22${params.id}%22%2C%22osu_username%22%3A%22${params.username}%22%7D&prompt=none`
+};
+
 // this is the code that gets executed when the REDIRECT_URI is called from a browser
 function doGet(e) {
+  if (!e.parameter.state) {
+    let page = HtmlService.createTemplateFromFile('Error');
+    page.tourName = TOURNAMENT_NAME;
+    page.tourIcon = TOURNAMENT_ICON;
+    page.tourAcronym = TOURNAMENT_ACRONYM;
+    page.forumPostURL = FORUM_POST_URL;
+    page.error_header = '404 Not Found';
+    page.error_body = 'We couldn\'t find the page you were looking for';
+    page.error_footer = null;
+
+    return page
+      .evaluate()
+      .setTitle(`${TOURNAMENT_ACRONYM} - Not Found`);
+  }
+
+  const state = JSON.parse(e.parameter.state);
+
   const date = new Date().getTime();
   if (REGISTRATION_END_DATE ? (date > REGISTRATION_END_DATE.getTime()) : false) {
     let page = HtmlService
       .createTemplateFromFile('Registration-Over');
     page.endDate = REGISTRATION_END_DATE.toUTCString().replace('GMT', 'UTC');
+    page.tourName = TOURNAMENT_NAME;
+    page.tourIcon = TOURNAMENT_ICON;
+    page.tourAcronym = TOURNAMENT_ACRONYM;
     page.forumPostURL = FORUM_POST_URL;
-    page.tourAcronym = TOURNEY_PREFIX;
 
     return page
       .evaluate()
-      .setTitle(`${TOURNEY_PREFIX} - Registration Period Over`);
+      .setTitle(`${TOURNAMENT_ACRONYM} - Registration Period Over`);
   }
   // abstract the state from the URL
-  const state = e.parameter.state;
+  //const state = e.parameter.state;
   // error parameter in the url = user denied either of the oauth provider's consent screens
-  if (e.parameter.hasOwnProperty('error')) {
-    let page = HtmlService.createTemplateFromFile('Access-denied');
-    page.forumPostURL = FORUM_POST_URL;
-    page.tourAcronym = TOURNEY_PREFIX;
 
-    return page
-      .evaluate()
-      .setTitle(`${TOURNEY_PREFIX} - Authorization Failed`);
-  }
-  // no state = nothing to do
-  if (!state) {
-    let page = HtmlService.createTemplateFromFile('Unauthorized');
-    page.forumPostURL = FORUM_POST_URL;
-    page.tourAcronym = TOURNEY_PREFIX;
+  if (state.step === 'osu') {
+    if (e.parameter.hasOwnProperty('error')) {
+      let page = HtmlService.createTemplateFromFile('Access-Denied');
+      page.tourName = TOURNAMENT_NAME;
+      page.tourIcon = TOURNAMENT_ICON;
+      page.tourAcronym = TOURNAMENT_ACRONYM;
+      page.forumPostURL = FORUM_POST_URL;
+      page.resource_denied = 'osu!';
 
-    return page
-      .evaluate()
-      .setTitle(`${TOURNEY_PREFIX} - Unauthorized`);
-  }
-  if (state === 'osu') {
+      return page
+        .evaluate()
+        .setTitle(`${TOURNAMENT_ACRONYM} - Authorization Failed`);
+    }
     // abstract the code from the URL
     const token = e.parameter.code;
     if (!token) {
-      let page = HtmlService.createTemplateFromFile('Unauthorized');
+      let page = HtmlService.createTemplateFromFile('Error');
+      page.tourName = TOURNAMENT_NAME;
+      page.tourIcon = TOURNAMENT_ICON;
+      page.tourAcronym = TOURNAMENT_ACRONYM;
       page.forumPostURL = FORUM_POST_URL;
-      page.tourAcronym = TOURNEY_PREFIX;
+      page.error_header = '400 Bad Request';
+      page.error_body = 'Your request did not return an authentication code';
 
       return page
         .evaluate()
-        .setTitle(`${TOURNEY_PREFIX} - Unauthorized`);
+        .setTitle(`${TOURNAMENT_ACRONYM} - Bad Request`);
     }
     const authToken = getOsuToken(token);
+
     if (!authToken) {
-      let page = HtmlService.createTemplateFromFile('Unauthorized');
+      let page = HtmlService.createTemplateFromFile('Error');
+      page.tourName = TOURNAMENT_NAME;
+      page.tourIcon = TOURNAMENT_ICON;
+      page.tourAcronym = TOURNAMENT_ACRONYM;
       page.forumPostURL = FORUM_POST_URL;
-      page.tourAcronym = TOURNEY_PREFIX;
+      page.error_header = '400 Bad Request';
+      page.error_body = 'Your authentication token is invalid or has expired';
 
       return page
         .evaluate()
-        .setTitle(`${TOURNEY_PREFIX} - Unauthorized`);
+        .setTitle(`${TOURNAMENT_ACRONYM} - Error`);
     }
-    const user = queryUser(authToken);
+    let user;
+    try { user = queryUser(authToken); }
+    catch (e) {
+
+    }
     if (!user) {
       let page = HtmlService.createTemplateFromFile('Error');
+      page.tourName = TOURNAMENT_NAME;
+      page.tourIcon = TOURNAMENT_ICON;
+      page.tourAcronym = TOURNAMENT_ACRONYM;
       page.forumPostURL = FORUM_POST_URL;
-      page.tourAcronym = TOURNEY_PREFIX;
+      page.error_header = '400 Bad Request';
+      page.error_body = 'Failed to query your osu! profile info, possibly because you attempted to do something you shouldn\'t';
 
       return page
         .evaluate()
-        .setTitle(`${TOURNEY_PREFIX} - Error`);
+        .setTitle(`${TOURNAMENT_ACRONYM} - Bad Request`);
     }
+
+    if (user.hasOwnProperty('is_restricted')) {
+      if (user.is_restricted === true) {
+        let page = HtmlService.createTemplateFromFile('Error');
+        page.tourName = TOURNAMENT_NAME;
+        page.tourIcon = TOURNAMENT_ICON;
+        page.tourAcronym = TOURNAMENT_ACRONYM;
+        page.forumPostURL = FORUM_POST_URL;
+        page.error_header = '401 Unauthorized';
+        page.error_body = 'Your osu! account is currently restricted. Restricted players may not interact in any multiplayer activities';
+        page.error_footer = 'You may close the page'
+
+        return page
+          .evaluate()
+          .setTitle(`${TOURNAMENT_ACRONYM} - Unauthorized`);
+      }
+    }
+
     // get a range delimited by the dimensions where there is data (equivalent to Ctrl + A)
     const range = SS.getRange(`${SHEET}!A1`).getDataRegion();
     // range = [[header_id, header_username, header_rank, header_badge_count, header_avatar_url]]
     const userIsPresent = range.getValues().some(r => r[1] === user.id);
     if (userIsPresent) {
-      let page = HtmlService.createTemplateFromFile('Already-registered')
-      page.tourAcronym = TOURNEY_PREFIX;
-      page.url = `https://discord.com/api/oauth2/authorize?client_id=${SECRET.discordClientId}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify%20guilds.join&state=discord${user.id}%20nick${user.username}&prompt=none`;
+      let page = HtmlService.createTemplateFromFile('Already-Registered')
+      page.tourName = TOURNAMENT_NAME;
+      page.tourIcon = TOURNAMENT_ICON;
+      page.tourAcronym = TOURNAMENT_ACRONYM;
+      page.forumPostURL = FORUM_POST_URL;
+      page.url = GenerateURI.discord(user);
       page.id = user.id;
       page.username = user.username;
-      page.forumPostURL = FORUM_POST_URL;
+      page.rank = user.rank;
 
       return page
         .evaluate()
-        .setTitle(`${TOURNEY_PREFIX} - Player Already Registered`);
+        .setTitle(`${TOURNAMENT_ACRONYM} - Player Already Registered`);
     }
 
     const addToRange = [
@@ -135,40 +204,69 @@ function doGet(e) {
 
     // append a row to the worksheet
     SS.getSheetByName(SHEET).appendRow(addToRange);
-    let page = HtmlService
-      .createTemplateFromFile('Registration-Success')
-    page.url = `https://discord.com/api/oauth2/authorize?client_id=${SECRET.discordClientId}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify%20guilds.join&state=discord${user.id}%20nick${user.username}&prompt=none`;
+    let page = HtmlService.createTemplateFromFile('Registration-Success');
+    page.tourName = TOURNAMENT_NAME;
+    page.tourIcon = TOURNAMENT_ICON;
+    page.tourAcronym = TOURNAMENT_ACRONYM;
+    page.forumPostURL = FORUM_POST_URL;
+    page.url = GenerateURI.discord(user);
     page.id = user.id;
     page.username = user.username;
-    page.forumPostURL = FORUM_POST_URL;
-    page.tourAcronym = TOURNEY_PREFIX;
+    page.rank = user.rank;
 
     return page
       .evaluate()
-      .setTitle(`${TOURNEY_PREFIX} - Player Registered Successfully`);
+      .setTitle(`${TOURNAMENT_ACRONYM} - Player Registered Successfully`);
   }
 
-  if (state.includes('discord')) {
-    // abstracting auth code from url
-    const token = e.parameter.code;
-    const authToken = getDiscordToken(token);
-    if (!authToken) {
-      let page = HtmlService.createTemplateFromFile('Unauthorized');
+  if (state.step === 'discord') {
+    if (e.parameter.hasOwnProperty('error')) {
+      let page = HtmlService.createTemplateFromFile('Access-Denied');
+      page.tourName = TOURNAMENT_NAME;
+      page.tourIcon = TOURNAMENT_ICON;
+      page.tourAcronym = TOURNAMENT_ACRONYM;
       page.forumPostURL = FORUM_POST_URL;
-      page.tourAcronym = TOURNEY_PREFIX;
+      page.resource_denied = 'Discord';
 
       return page
         .evaluate()
-        .setTitle(`${TOURNEY_PREFIX} - Error`)
+        .setTitle(`${TOURNAMENT_ACRONYM} - Authorization Denied`);
     }
-    const regExpId = /^(?:discord)(\d+)/ig;
-    const regExpNick = /^(?:discord\d+ nick)(.+)/ig;
+    // abstracting auth code from url
+    const token = e.parameter.code;
+    if (!token) {
+      let page = HtmlService.createTemplateFromFile('Unauthorized');
+      page.tourName = TOURNAMENT_NAME;
+      page.tourIcon = TOURNAMENT_ICON;
+      page.tourAcronym = TOURNAMENT_ACRONYM;
+      page.forumPostURL = FORUM_POST_URL;
 
-    const uid = parseInt(regExpId.exec(state)[1], 10);
-    const username = regExpNick.exec(state)[1];
+      return page
+        .evaluate()
+        .setTitle(`${TOURNAMENT_ACRONYM} - Error`);
+    }
+    let authToken;
+    try {
+      authToken = getDiscordToken(token);
+    } catch (e) {
+      let page = HtmlService.createTemplateFromFile('Unauthorized');
+      page.tourName = TOURNAMENT_NAME;
+      page.tourIcon = TOURNAMENT_ICON;
+      page.tourAcronym = TOURNAMENT_ACRONYM;
+      page.forumPostURL = FORUM_POST_URL;
+      page.error = 'Error joining server/giving Role.';
 
-    let query = discordJoinServer(authToken, username);
+      const error = [new Error(`authToken assertion failed for User ${state.osu_username}, user_id: ${state.osu_id}`), e.stack];
+      console.log(...error);
 
+      return page
+        .evaluate()
+        .setTitle(`${TOURNAMENT_ACRONYM} - Error`);
+    }
+    const uid = parseInt(state.osu_id);
+    const username = state.osu_username
+
+    let query;
     const range = SS.getRange(`${SHEET}!A1`).getDataRegion();
     let data = range.getValues();
     let i = 1;
@@ -179,53 +277,72 @@ function doGet(e) {
         break;
       } i++;
     }
+
+    try { query = discordJoinServer(authToken, username); }
+    catch (e) {
+      let error = [new Error('discordJoinServer() threw an exception'), e.stack];
+      console.log(...error);
+      error = [...error, '\nYou need to check this, more than likely you have undesirable input in your _DATA tab'];
+      MailApp.sendEmail(MAIL, `[ERROR] - ${TOURNAMENT_ACRONYM} (authToken)`, error.join('\n'));
+
+      let page = HtmlService.createTemplateFromFile('Error');
+      page.error = 'Error while assigning Discord Role.'
+
+      return page
+        .evaluate()
+        .setTitle(`${TOURNAMENT_ACRONYM} - Error`);
+    }
     // 201: member succesffully joined the server
     if (query.response === 201) {
       // finding the row where the osu! userID is and associating the Discord Tag + Discord userID to it
       SS.getSheetByName(SHEET).getRange(insertRow, range.getLastColumn() - 2, 1, 3).setValues([[query.discordTag, query.discordId, false]]);
-      let page = HtmlService.createTemplateFromFile('Discord201');
-      page.tourAcronym = TOURNEY_PREFIX;
+      let page = HtmlService.createTemplateFromFile('Discord20x');
+      page.outcome = 'Server joined successfully';
+      page.tourName = TOURNAMENT_NAME;
+      page.tourIcon = TOURNAMENT_ICON;
+      page.tourAcronym = TOURNAMENT_ACRONYM;
+      page.forumPostURL = FORUM_POST_URL;
       page.id = uid;
       page.username = username;
-      page.forumPostURL = FORUM_POST_URL;
-
+      page.discord_tag = query.discordTag;
+      
       return page
         .evaluate()
-        .setTitle(`${TOURNEY_PREFIX} - Server joined successfully`);
+        .setTitle(`${TOURNAMENT_ACRONYM} - Server joined successfully`);
     }
     // 204: member already joined the server, roles added
     if (query.response === 204) {
       // finding the row where the osu! userID is and associating the Discord Tag + Discord userID to it
       SS.getSheetByName(SHEET).getRange(insertRow, range.getLastColumn() - 2, 1, 3).setValues([[query.discordTag, query.discordId, true]]);
-      let page = HtmlService.createTemplateFromFile('Discord204');
-      page.tourAcronym = TOURNEY_PREFIX;
+      let page = HtmlService.createTemplateFromFile('Discord20x');
+      page.outcome = 'Player Role assigned successfully';
+      page.tourName = TOURNAMENT_NAME;
+      page.tourIcon = TOURNAMENT_ICON;
+      page.tourAcronym = TOURNAMENT_ACRONYM;
+      page.forumPostURL = FORUM_POST_URL;
       page.id = uid;
       page.username = username;
-      page.forumPostURL = FORUM_POST_URL;
+      page.discord_tag = query.discordTag;
 
       return page
         .evaluate()
-        .setTitle(`${TOURNEY_PREFIX} - Player Already Registered`);
+        .setTitle(`${TOURNAMENT_ACRONYM} - Player already in the server`);
     }
   }
   else {
-    let page = HtmlService.createTemplateFromFile('Unauthorized');
-    page.tourAcronym = TOURNEY_PREFIX;
+    let page = HtmlService.createTemplateFromFile('Error');
+    page.tourName = TOURNAMENT_NAME;
+    page.tourIcon = TOURNAMENT_ICON;
+    page.tourAcronym = TOURNAMENT_ACRONYM;
     page.forumPostURL = FORUM_POST_URL;
-    
+    page.error = 'Unknown error.';
+
     return page
       .evaluate()
-      .setTitle(`${TOURNEY_PREFIX} - Error`);
+      .setTitle(`${TOURNAMENT_ACRONYM} - Error`);
   }
 }
 
-// URL to be used on the forum post
-function returnForumURL(returnUriOnly) {
-  const redirectUri = REDIRECT_URI;
-  const result = `https://osu.ppy.sh/oauth/authorize?client_id=${SECRET.osuClientId}&redirect_uri=${redirectUri}&response_type=code&scope=identify&state=osu`;
-  if (returnUriOnly) return redirectUri;
-  return result;
-}
 // osu AUTHORIZATION CODE GRANT (add new users) function
 const getOsuToken = ((authCode) => {
   const url = 'https://osu.ppy.sh/oauth/token';
@@ -287,8 +404,8 @@ const getDiscordToken = ((authCode) => {
     },
     muteHttpExceptions: true
   })
-  // no token
-  if (fetchToken.getResponseCode() !== 200) return null;
+  // no token, malformed token or invalid query
+  if (fetchToken.getResponseCode() !== 200) throw new Error('Discord: 401 Unauthorized');
 
   // only return the access_token, we're not storing refresh_tokens
   const result = JSON.parse(fetchToken).access_token;
@@ -310,7 +427,7 @@ function queryUser(token) {
     }
   });
 
-  if (fetchUser.getResponseCode() !== 200) return null;
+  if (fetchUser.getResponseCode() !== 200) throw new Error('osu!: 401 Unauthorized');
 
   let result = JSON.parse(fetchUser);
   result.badgeCount = 0;
@@ -350,73 +467,78 @@ function queryUser(token) {
  * @return {number} HTTPResponse code indicating the result of the operation.
  */
 function discordJoinServer(token, nick) {
-  const baseURL = 'https://discord.com/api/v8';
-  let urlUsers = `${baseURL}/users/@me`
-  const rolesToUrl = ROLES_TO_GIVE;
+  try {
+    const baseURL = 'https://discord.com/api/v8';
+    let urlUsers = `${baseURL}/users/@me`
+    const rolesToUrl = ROLES_TO_GIVE;
 
-  let requestUser = UrlFetchApp.fetch(urlUsers, {
-    method: 'get',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    }
-  })
-  const user = JSON.parse(requestUser);
-
-  const guildUserFetch = ((roles, method, nickToGive) => {
-    let urlGuilds = `https://discordapp.com/api/v8/guilds/${GUILD}/members/${user.id}`;
-    let params = {
+    const requestUser = UrlFetchApp.fetch(urlUsers, {
       method: 'get',
       headers: {
-        'Authorization': `Bot ${SECRET.discordBotToken}`,
-        'Content-Type': 'application/json'
+        'Authorization': `Bearer ${token}`,
       },
-      muteHttpExceptions: true
-    };
-    // member not in guild
-    if (method === 'put') {
-      params.method = 'put';
-      params.payload = JSON.stringify({
-        "nick": nickToGive,
-        "access_token": token,
-        "roles": roles
-      });
+    });
+    const user = JSON.parse(requestUser);
+
+    const guildUserFetch = ((roles, method, nickToGive) => {
+      let urlGuilds = `https://discordapp.com/api/v8/guilds/${GUILD}/members/${user.id}`;
+      let params = {
+        method: 'get',
+        headers: {
+          'Authorization': `Bot ${SECRET.discordBotToken}`,
+          'Content-Type': 'application/json'
+        },
+        muteHttpExceptions: true
+      };
+      // member not in guild
+      if (method === 'put') {
+        params.method = 'put';
+        params.payload = JSON.stringify({
+          "nick": nickToGive,
+          "access_token": token,
+          "roles": roles
+        });
+      }
+      // member in guild
+      if (method === 'patch') {
+        urlGuilds += `/roles/${roles}`;
+        // yes I called it 'patch' even though it actually 'put's the resource, fight me
+        params.method = 'put';
+        params.payload = JSON.stringify({
+          "access_token": token
+        });
+      }
+
+      const request = UrlFetchApp.fetch(urlGuilds, params);
+      return { user: request.user, response: request.getResponseCode() };
+    });
+
+    const discordTag = `${user.username}#${user.discriminator}`;
+    const discordId = user.id;
+    let requestGuild = guildUserFetch();
+
+    // user not in guild
+    if (requestGuild.response === 404) {
+      let result = guildUserFetch(rolesToUrl, 'put', nick);
+      // @ts-ignore
+      return { discordTag, discordId, response: result.response };
     }
-    // member in guild
-    if (method === 'patch') {
-      urlGuilds += `/roles/${roles}`;
-      // yes I called it 'patch' even though it actually 'put's the resource, fight me
-      params.method = 'put';
-      params.payload = JSON.stringify({
-        "access_token": token
-      });
+
+    // user in guild, update instead
+    if (requestGuild.response === 200) {
+      let response;
+      for (currentRole of rolesToUrl) {
+        response = guildUserFetch(currentRole, 'patch').response;
+      }
+      // @ts-ignore
+      return { discordTag, discordId, response: response };
     }
-
-    const request = UrlFetchApp.fetch(urlGuilds, params);
-    return { user: request.user, response: request.getResponseCode() };
-  });
-
-  const discordTag = `${user.username}#${user.discriminator}`;
-  const discordId = user.id;
-  let requestGuild = guildUserFetch();
-
-  // user not in guild
-  if (requestGuild.response === 404) {
-    let result = guildUserFetch(rolesToUrl, 'put', nick);
-    // @ts-ignore
-    return { discordTag, discordId, response: result.response };
+    // @ts-ignore      
+    return { discordTag, discordId, response: requestGuild.response };
   }
-
-  // user in guild, update instead
-  if (requestGuild.response === 200) {
-    let response;
-    for (currentRole of rolesToUrl) {
-      response = guildUserFetch(currentRole, 'patch').response;
-    }
-    // @ts-ignore
-    return { discordTag, discordId, response: response };
+  catch (e) {
+    return new Error('discordJoinServer()');
   }
-  // @ts-ignore      
-  return { discordTag, discordId, response: requestGuild.response };
 }
 /** 
  * @param {(number|string)} userId The user ID to query, can be the username (auto detects which of the two it is)
@@ -501,31 +623,34 @@ function getUser(userId, mode) {
  * Updates the osu! user information
  */
 function updateUsers() {
-  const range = SS.getRangeByName(`${SHEET}!B1:J`);
+  const range = SS.getRangeByName(`${SHEET}!B2:J`);
   let data = range.getValues();
   for (row of data) {
-    // header row, skip this iteration
-    if (row[0] === 'id') continue;
-    // empty row, skip this iteration
-    if (!row[0]) continue;
+    try {
+      // empty row, skip this iteration
+      if (!row[0]) continue;
 
-    const user = getUser(row[0], MODE);
-    if (user.username === 'RESTRICTED') {
-      row[1] += ' [RESTRICTED]';
-      continue;
+      const user = getUser(row[0], MODE);
+      if (user.username === 'RESTRICTED') {
+        row[1] += ' [RESTRICTED]';
+        continue;
+      }
+      else if (user.hasOwnProperty(username)) {
+        row[1] = user.username;
+        row[2] = user.rank;
+        row[3] = user.pp;
+        row[4] = user.statistics.play_count;
+        row[5] = new Date(user.join_date);
+        row[6] = user.badgeCount;
+        row[7] = `https://a.ppy.sh/${user.id}`;
+        row[8] = user.country_code;
+      }
     }
-    else if (user.hasOwnProperty(username)) {
-      row[1] = user.username;
-      row[2] = user.rank;
-      row[3] = user.pp;
-      row[4] = user.statistics.play_count;
-      row[5] = new Date(user.join_date);
-      row[6] = user.badgeCount;
-      row[7] = `https://a.ppy.sh/${user.id}`;
-      row[8] = user.country_code;
+    catch (e) {
+      console.log(new Error(`Querying user_id ${row[0]} failed.`, e.stack));
     }
   }
-  const rangeToAdd = [1, 2, range.getLastRow(), range.getLastColumn() - 1];
+  const rangeToAdd = [1, 1, range.getLastRow(), range.getLastColumn()];
   // pushing the same range we queried, prevents race condition-related errors
   return SS.getSheetByName(SHEET).getRange(...rangeToAdd).setValues(data);
 }
@@ -536,6 +661,15 @@ function deleteUsers() {
   const range = SS.getRangeByName(`${SHEET}!A1`).getDataRegion();
   const rangeToDelete = [2, 1, range.getLastRow(), range.getLastColumn()];
   return SS.getSheetByName(`${SHEET}`).getRange(...rangeToDelete).clearContent();
+}
+
+/**
+ * Mimmicks importing local stylesheets e.g. ./css/index.css
+ * @param {string} file The project file you're importing
+ * @returns {HtmlService} Raw templated .html file, for appending to a Templated HTML file.
+ */
+function include(file) {
+  return HtmlService.createTemplateFromFile(file).getRawContent();
 }
 
 function bumpSheetVersion(bumpType) {

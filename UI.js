@@ -62,7 +62,13 @@ function setEnvVars() {
     const result = redirectUriPrompt.getResponseText().trim();
     return PropertiesService.getScriptProperties().setProperty('redirectUri', result);
   }
-
+  
+  const tournamentNamePrompt = prompt('Enter the name for your tournament', `The name will be shown in the header for the registration pages, aligned to the right.\n\nCurrent tournament name: ${SECRET.tournamentName ? SECRET.tournamentName : 'No name set'}\n\nCancel: no change`);
+  if (tournamentNamePrompt.getSelectedButton() === UI.Button.OK) {
+    const result = tournamentNamePrompt.getResponseText().trim();
+    PropertiesService.getScriptProperties().setProperty('tournamentName', result);
+  }
+  
   const tournamentAcronymPrompt = prompt('Enter your Tournament\'s acronym (e.g. My osu! Tournament => MOT)', `Current acronym: ${SECRET.tournamentAcronym ? SECRET.tournamentAcronym : 'No acronym set'}\n\nCancel: no change`);
   if (tournamentAcronymPrompt.getSelectedButton() === UI.Button.OK) {
     const result = tournamentAcronymPrompt.getResponseText().trim();
@@ -82,13 +88,20 @@ function setEnvVars() {
     PropertiesService.getScriptProperties().setProperty('mode', finalResult);
   }
 
-  const registrationEndDatePrompt = prompt('Enter your registration deadline', `Current end date: ${REGISTRATION_END_DATE ? REGISTRATION_END_DATE : 'No end date set (signups open forever)'}\n\nFormat: ${new Date().toUTCString()}\n\nTimezone codes are supported (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date#several_ways_to_create_a_date_object)\n\nLeave the field empty to have signups always open\n\nCancel: no change`,)
+
+  const tournamentIconPrompt = prompt('Enter the tournament icon\'s URL', `The icon will be shown in the header for the registering pages, similar to how osu!'s website does it.\nIt will be capped at 48x48 pixels in size and will not be rounded, unlike user profile picture.\n\nLeave empty to have only the tournament's name show up in the header.\n\nCurrent icon: ${SECRET.tournamentIcon ? SECRET.tournamentIcon : 'No icon set'}\n\nCancel: no change`);
+  if (tournamentIconPrompt.getSelectedButton() === UI.Button.OK) {
+    const result = tournamentIconPrompt.getResponseText().trim();
+    PropertiesService.getScriptProperties().setProperty('tournamentIcon', result);
+  }
+
+  const registrationEndDatePrompt = prompt('Enter your registration deadline', `Current end date: ${REGISTRATION_END_DATE ? REGISTRATION_END_DATE : 'No end date set (signups open forever)'}\n\nFormat: ${new Date().toUTCString()}\n\nTimezone codes are supported (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date#several_ways_to_create_a_date_object)\n\nLeave the field empty to have signups always open\n\nCancel: no change`)
   if (registrationEndDatePrompt.getSelectedButton() === UI.Button.OK) {
     const result = registrationEndDatePrompt.getResponseText().trim();
     PropertiesService.getScriptProperties().setProperty('registrationEndDate', result);
   }
 
-  const forumPostUrlPrompt = prompt('Enter your Forum Post URL', `Current Forum Post URL: ${FORUM_POST_URL ? FORUM_POST_URL : 'No URL set (set to https://osu.ppy.sh/home)'}\n\nCancel: no change`,)
+  const forumPostUrlPrompt = prompt('Enter your Forum Post URL', `Current Forum Post URL: ${FORUM_POST_URL ? FORUM_POST_URL : 'No URL set (set to https://osu.ppy.sh/home)'}\n\nCancel: no change`)
   if (forumPostUrlPrompt.getSelectedButton() === UI.Button.OK) {
     const result = forumPostUrlPrompt.getResponseText().trim();
     PropertiesService.getScriptProperties().setProperty('forumPostURL', result);
