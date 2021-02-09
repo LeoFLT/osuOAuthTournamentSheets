@@ -1,4 +1,4 @@
-# osu! 1v1 Tournament OAuth sheets
+# osu! 1v1 Tournament OAuth2 Google Spreadsheets
 
 This collection of scripts will:
 
