@@ -43,36 +43,96 @@ const URL_PROPERTIES = {
   tourName: TOURNAMENT_NAME,
   tourIcon: TOURNAMENT_ICON,
   tourAcronym: TOURNAMENT_ACRONYM,
-  forumPostURL: FORUM_POST_URL 
+  forumPostURL: FORUM_POST_URL
 };
-
-/**
- * Dictionary object for generating OAuth2 redirect URLs 
- */
+const THEMING = {
+  bg_color: '#36393f',
+  nav_color: '#68217a'
+};
+/** Dictionary object for generating OAuth2 redirect URLs */
 const GenerateURI = {
-  /**
-   * @property {string} osu Generate an osu! OAuth2 URI
-   */
+  /** @property {string} osu Generate an osu! OAuth2 URI */
   osu: `https://osu.ppy.sh/oauth/authorize?client_id=${SECRET.osuClientId}&redirect_uri=${SECRET.redirectUri}&response_type=code&scope=identify&state=%7B%22step%22%3A%22osu%22%7D`,
-  /**
-   * @param {{id: number, username: string}} params The parameters to feed into the URL
-   */
+  /** @param {{id: number, username: string}} params The parameters to feed into the URL */
   discord: (params) => `https://discord.com/api/oauth2/authorize?client_id=${SECRET.discordClientId}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify%20guilds.join&state=%7B%22step%22%3A%22discord%22%2C%22osu_id%22%3A%22${params.id}%22%2C%22osu_username%22%3A%22${params.username}%22%7D&prompt=none`
 };
+/**
+ * Mimmicks importing local stylesheets e.g. ./css/index.css
+ * @param {string} file The project file you're importing
+ * @returns {HtmlService} HtmlService.HtmlOutput file, for appending as HTML code to another HtmlService.HtmlTemplate file.
+ */
+function include(file, ...overrides) {
+  let page = HtmlService.createTemplateFromFile(file);
+  for (obj of overrides) {
+    Object.assign(page, obj);
+  }
+  return page
+    .evaluate()
+    .getContent();
+}
+
+/**
+ * Service class for managing page templates
+ * @class
+ */
+class TemplateService {
+  /**
+   * Creates a HtmlService.HtmlTemplate file based on a project file
+   * @param {string} file The project file to import
+   */
+  static createTemplateFromFile(file) {
+    this.htmlFile = HtmlService.createTemplateFromFile(file);
+    return this;
+  }
+  /** 
+   * @method include Inserts a list of files inside the template as a header, similar to importing a stylesheet in HTML
+   * @param {...string} fileList The list of strings that each represent a project file to be imported
+   * @returns {HtmlService.HtmlTemplate} Returns a HtmlTemplate object, for chaining
+  */
+  static include(...fileList) {
+    let itemsToInclude = [];
+    for (const file of fileList) {
+      itemsToInclude = [...itemsToInclude, include(file, THEMING)];
+    }
+    this.htmlFile.includeList = itemsToInclude.join('\n');
+    return this;
+  }
+  /** 
+   * @method append Appends a list of objects as properties of the HtmlService.HtmlTemplate file
+   * @param {...{objList}} objList The list of object(s) to append to the file as properties
+   * @returns {HtmlService.HtmlTemplate} Returns a HtmlTemplate object, for chaining
+   */
+  static append(...objList) {
+    for (const obj of objList) {
+      Object.assign(this.htmlFile, obj);
+    }
+    return this;
+  }
+  /**
+   * @method serve Serves and sets the title to the webpage
+   * @param {string} title The web page title to serve
+   * @returns {HtmlService.HtmlOutput} Returns a HtmlOutput object, to be served as webpage
+   */
+  static serve(title) {
+    this.__servePage__ = this.htmlFile.evaluate();
+    if (title) this.__servePage__.setTitle(title);
+    return this.__servePage__;
+  }
+}
 
 // this is the code that gets executed when the REDIRECT_URI is called from a browser
 function doGet(e) {
   // no state = nothing to do
   if (!e.parameter.state) {
-    let page = HtmlService.createTemplateFromFile('Error');
-    Object.assign(page, URL_PROPERTIES);
-    page.error_header = '404 Not Found';
-    page.error_body = 'We couldn\'t find the page you were looking for';
-    page.error_footer = null;
-
-    return page
-      .evaluate()
-      .setTitle(`${TOURNAMENT_ACRONYM} - Not Found`);
+    return TemplateService
+      .createTemplateFromFile('Error')
+      .include('index.css')
+      .append(URL_PROPERTIES, {
+        error_header: '404 Not Found',
+        error_body: 'We couldn\'t find the page you were looking for',
+        error_footer: null
+      })
+      .serve(`${TOURNAMENT_ACRONYM} - Not Found`);
   }
 
   // abstract the state from the URL
@@ -81,48 +141,46 @@ function doGet(e) {
 
   const date = new Date().getTime();
   if (REGISTRATION_END_DATE ? (date > REGISTRATION_END_DATE.getTime()) : false) {
-    let page = HtmlService.createTemplateFromFile('Registration-Over');
-    Object.assign(page, URL_PROPERTIES);
-    page.endDate = REGISTRATION_END_DATE.toUTCString().replace('GMT', 'UTC');
-
-    return page
-      .evaluate()
-      .setTitle(`${TOURNAMENT_ACRONYM} - Registration Period Over`);
+    return TemplateService
+      .createTemplateFromFile('Registration-Over')
+      .include('index.css')
+      .append(URL_PROPERTIES, {
+        endDate: REGISTRATION_END_DATE.toUTCString().replace('GMT', 'UTC')
+      })
+      .serve(`${TOURNAMENT_ACRONYM} - Registration Period Over`);
   }
 
   if (state.step === 'osu') {
     if (e.parameter.hasOwnProperty('error')) {
-      let page = HtmlService.createTemplateFromFile('Access-Denied');
-      Object.assign(page, URL_PROPERTIES);
-      page.resource_denied = 'osu!';
-
-      return page
-        .evaluate()
-        .setTitle(`${TOURNAMENT_ACRONYM} - Authorization Failed`);
+      return TemplateService
+        .createTemplateFromFile('Access-Denied')
+        .include('index.css')
+        .append(URL_PROPERTIES, { resource_denied: 'osu!' })
+        .serve(`${TOURNAMENT_ACRONYM} - Authorization Failed`);
     }
     // abstract the code from the URL
     const token = e.parameter.code;
     if (!token) {
-      let page = HtmlService.createTemplateFromFile('Error');
-      Object.assign(page, URL_PROPERTIES);
-      page.error_header = '400 Bad Request';
-      page.error_body = 'Your request did not return an authentication code';
-
-      return page
-        .evaluate()
-        .setTitle(`${TOURNAMENT_ACRONYM} - Bad Request`);
+      return TemplateService
+        .createTemplateFromFile('Error')
+        .include('index.css')
+        .append(URL_PROPERTIES, {
+          error_header: '400 Bad Request',
+          error_body: 'Your request did not return an authentication code'
+        })
+        .serve(`${TOURNAMENT_ACRONYM} - Bad Request`);
     }
     const authToken = getOsuToken(token);
 
     if (!authToken) {
-      let page = HtmlService.createTemplateFromFile('Error');
-      Object.assign(page, URL_PROPERTIES);
-      page.error_header = '400 Bad Request';
-      page.error_body = 'Your authentication token is invalid or has expired';
-
-      return page
-        .evaluate()
-        .setTitle(`${TOURNAMENT_ACRONYM} - Error`);
+      return TemplateService
+        .createTemplateFromFile('Error')
+        .include('index.css')
+        .append(URL_PROPERTIES, {
+          error_header: '400 Bad Request',
+          error_body: 'Your authentication token is invalid or has expired'
+        })
+        .serve(`${TOURNAMENT_ACRONYM} - Error`);
     }
     let user;
     try { user = queryUser(authToken); }
@@ -130,27 +188,27 @@ function doGet(e) {
 
     }
     if (!user) {
-      let page = HtmlService.createTemplateFromFile('Error');
-      Object.assign(page, URL_PROPERTIES);
-      page.error_header = '400 Bad Request';
-      page.error_body = 'Failed to query your osu! profile info, possibly because you attempted to do something you shouldn\'t';
-
-      return page
-        .evaluate()
-        .setTitle(`${TOURNAMENT_ACRONYM} - Bad Request`);
+      return TemplateService
+        .createTemplateFromFile('Error')
+        .include('index.css')
+        .append(URL_PROPERTIES, {
+          error_header: '400 Bad Request',
+          error_body: 'Failed to query your osu! profile info, possibly because you attempted to do something you shouldn\'t'
+        })
+        .serve(`${TOURNAMENT_ACRONYM} - Bad Request`);
     }
 
     if (user.hasOwnProperty('is_restricted')) {
       if (user.is_restricted === true) {
-        let page = HtmlService.createTemplateFromFile('Error');
-        Object.assign(page, URL_PROPERTIES);
-        page.error_header = '401 Unauthorized';
-        page.error_body = 'Your osu! account is currently restricted. Restricted players may not interact in any multiplayer activities';
-        page.error_footer = 'You may close the page'
-
-        return page
-          .evaluate()
-          .setTitle(`${TOURNAMENT_ACRONYM} - Unauthorized`);
+        return TemplateService
+          .createTemplateFromFile('Error')
+          .include('index.css')
+          .append(URL_PROPERTIES, {
+            error_header: '401 Unauthorized',
+            error_body: 'Your osu! account is currently restricted. Restricted players may not interact in any multiplayer activities',
+            error_footer: 'You may close the page'
+          })
+          .serve(`${TOURNAMENT_ACRONYM} - Unauthorized`);
       }
     }
 
@@ -159,16 +217,16 @@ function doGet(e) {
     // range = [[header_id, header_username, header_rank, header_badge_count, header_avatar_url]]
     const userIsPresent = range.getValues().some(r => r[1] === user.id);
     if (userIsPresent) {
-      let page = HtmlService.createTemplateFromFile('Already-Registered')
-      Object.assign(page, URL_PROPERTIES);
-      page.url = GenerateURI.discord(user);
-      page.id = user.id;
-      page.username = user.username;
-      page.rank = user.rank;
-
-      return page
-        .evaluate()
-        .setTitle(`${TOURNAMENT_ACRONYM} - Player Already Registered`);
+      return TemplateService
+        .createTemplateFromFile('Already-Registered')
+        .include('index.css')
+        .append(URL_PROPERTIES, {
+          url: GenerateURI.discord(user),
+          id: user.id,
+          username: user.username,
+          rank: user.rank
+        })
+        .serve(`${TOURNAMENT_ACRONYM} - Player Already Registered`);
     }
 
     const addToRange = [
@@ -186,52 +244,51 @@ function doGet(e) {
 
     // append a row to the worksheet
     SS.getSheetByName(SHEET).appendRow(addToRange);
-    let page = HtmlService.createTemplateFromFile('Registration-Success');
-    Object.assign(page, URL_PROPERTIES);
-    page.url = GenerateURI.discord(user);
-    page.id = user.id;
-    page.username = user.username;
-    page.rank = user.rank;
 
-    return page
-      .evaluate()
-      .setTitle(`${TOURNAMENT_ACRONYM} - Player Registered Successfully`);
+    return TemplateService
+      .createTemplateFromFile('Registration-Success')
+      .include('index.css')
+      .append(URL_PROPERTIES, {
+        url: GenerateURI.discord(user),
+        id: user.id,
+        username: user.username,
+        rank: user.rank
+      })
+      .serve(`${TOURNAMENT_ACRONYM} - Player Registered Successfully`);
   }
 
   if (state.step === 'discord') {
     if (e.parameter.hasOwnProperty('error')) {
-      let page = HtmlService.createTemplateFromFile('Access-Denied');
-      Object.assign(page, URL_PROPERTIES);
-      page.resource_denied = 'Discord';
-
-      return page
-        .evaluate()
-        .setTitle(`${TOURNAMENT_ACRONYM} - Authorization Denied`);
+      return TemplateService
+        .createTemplateFromFile('Access-Denied')
+        .include('index.css')
+        .append(URL_PROPERTIES, { resource_denied: 'Discord' })
+        .serve(`${TOURNAMENT_ACRONYM} - Authorization Denied`);
     }
     // abstracting auth code from url
     const token = e.parameter.code;
     if (!token) {
-      let page = HtmlService.createTemplateFromFile('Unauthorized');
-      Object.assign(page, URL_PROPERTIES);
-
-      return page
-        .evaluate()
-        .setTitle(`${TOURNAMENT_ACRONYM} - Error`);
+      return TemplateService
+        .createTemplateFromFile('Unauthorized')
+        .include('index.css')
+        .append(URL_PROPERTIES)
+        .serve(`${TOURNAMENT_ACRONYM} - Error`);
     }
-    let authToken;
-    try {
-      authToken = getDiscordToken(token);
-    } catch (e) {
-      let page = HtmlService.createTemplateFromFile('Unauthorized');
-      Object.assign(page, URL_PROPERTIES);
-      page.error = 'Error joining server/giving Role.';
 
-      const error = [new Error(`authToken assertion failed for User ${state.osu_username}, user_id: ${state.osu_id}`), e.stack];
+    let authToken;
+    try { authToken = getDiscordToken(token); }
+    catch (e) {
+      const error = [
+        new Error(`authToken assertion failed for User ${state.osu_username} @ ${new Date().toUTCString()}, user_id: ${state.osu_id}`),
+        e.stack
+      ];
       console.log(...error);
 
-      return page
-        .evaluate()
-        .setTitle(`${TOURNAMENT_ACRONYM} - Error`);
+      return TemplateService
+        .createTemplateFromFile('Unauthorized')
+        .include('index.css')
+        .append(URL_PROPERTIES, { error: 'Error joining server/giving Role.' })
+        .serve(`${TOURNAMENT_ACRONYM} - Error`);
     }
     const uid = parseInt(state.osu_id);
     const username = state.osu_username
@@ -250,58 +307,56 @@ function doGet(e) {
 
     try { query = discordJoinServer(authToken, username); }
     catch (e) {
-      let error = [new Error('discordJoinServer() threw an exception'), e.stack];
+      let error = [new Error('discordJoinServer() threw an exception\nTimestamp: ' + new Date().toUTCString().replace('GMT', 'UTC')), e.stack];
       console.log(...error);
-      error = [...error, '\nYou need to check this, more than likely you have undesirable input in your _DATA tab'];
-      MailApp.sendEmail(MAIL, `[ERROR] - ${TOURNAMENT_ACRONYM} (authToken)`, error.join('\n'));
 
-      let page = HtmlService.createTemplateFromFile('Error');
-      Object.assign(page, URL_PROPERTIES);
-      page.error = 'Error while assigning Discord Role.'
-
-      return page
-        .evaluate()
-        .setTitle(`${TOURNAMENT_ACRONYM} - Error`);
+      return TemplateService
+        .createTemplateFromFile('Error')
+        .include('index.css')
+        .append(URL_PROPERTIES, { error: 'Error while assigning Discord Role.' })
+        .serve(`${TOURNAMENT_ACRONYM} - Error`);
     }
     // 201: member succesffully joined the server
     if (query.response === 201) {
       // finding the row where the osu! userID is and associating the Discord Tag + Discord userID to it
       SS.getSheetByName(SHEET).getRange(insertRow, range.getLastColumn() - 2, 1, 3).setValues([[query.discordTag, query.discordId, false]]);
-      let page = HtmlService.createTemplateFromFile('Discord20x');
-      Object.assign(page, URL_PROPERTIES);
-      page.outcome = 'Server joined successfully';
-      page.id = uid;
-      page.username = username;
-      page.discord_tag = query.discordTag;
-      
-      return page
-        .evaluate()
-        .setTitle(`${TOURNAMENT_ACRONYM} - Server joined successfully`);
+      return TemplateService
+        .createTemplateFromFile('Discord20x')
+        .include('index.css')
+        .append(URL_PROPERTIES, {
+          outcome: 'Server joined successfully',
+          id: uid,
+          username: username,
+          discord_tag: query.discordTag
+        })
+        .serve(`${TOURNAMENT_ACRONYM} - Server joined successfully`);
     }
     // 204: member already joined the server, roles added
     if (query.response === 204) {
       // finding the row where the osu! userID is and associating the Discord Tag + Discord userID to it
       SS.getSheetByName(SHEET).getRange(insertRow, range.getLastColumn() - 2, 1, 3).setValues([[query.discordTag, query.discordId, true]]);
-      let page = HtmlService.createTemplateFromFile('Discord20x');
-      Object.assign(page, URL_PROPERTIES);
-      page.outcome = 'Player Role assigned successfully';
-      page.id = uid;
-      page.username = username;
-      page.discord_tag = query.discordTag;
-
-      return page
-        .evaluate()
-        .setTitle(`${TOURNAMENT_ACRONYM} - Player already in the server`);
+      return TemplateService
+        .createTemplateFromFile('Discord20x')
+        .include('index.css')
+        .append(URL_PROPERTIES, {
+          outcome: 'Player Role assigned successfully',
+          id: uid,
+          username: username,
+          discord_tag: query.discordTag
+        })
+        .serve(`${TOURNAMENT_ACRONYM} - Player already in the server`);
     }
   }
   else {
-    let page = HtmlService.createTemplateFromFile('Error');
-    page = Object.assign(page, URL_PROPERTIES);
-    page.error = 'Unknown error.';
-
-    return page
-      .evaluate()
-      .setTitle(`${TOURNAMENT_ACRONYM} - Error`);
+    return TemplateService
+      .createTemplateFromFile('Error')
+      .include('index.css')
+      .append(URL_PROPERTIES, {
+        error_header: '500 Internal Server Error',
+        error_body: 'The server encountered an internal error and could not complete your request',
+        error_footer: 'You may close this window and try again at a later time'
+      })
+      .serve(`${TOURNAMENT_ACRONYM} - Error`);
   }
 }
 
@@ -623,15 +678,6 @@ function deleteUsers() {
   const range = SS.getRangeByName(`${SHEET}!A1`).getDataRegion();
   const rangeToDelete = [2, 1, range.getLastRow(), range.getLastColumn()];
   return SS.getSheetByName(`${SHEET}`).getRange(...rangeToDelete).clearContent();
-}
-
-/**
- * Mimmicks importing local stylesheets e.g. ./css/index.css
- * @param {string} file The project file you're importing
- * @returns {HtmlService} Raw templated .html file, for appending to a Templated HTML file.
- */
-function include(file) {
-  return HtmlService.createTemplateFromFile(file).getRawContent();
 }
 
 function bumpSheetVersion(bumpType) {

@@ -3,12 +3,12 @@
 
 <head>
 	<base target="_top">
-	<?!= include('index.css') ?>
+	<?!= includeList ?>
 </head>
 
 <body>
 	<nav>
-		<div class="nav-wrapper container">
+		<div class="nav-wrapper">
 			<a href="<?= forumPostURL ?>" class="brand-logo right" title="Go to the forum post"><?= tourName ?><img class="right" src="<?= tourIcon ?>" id="img-logo"></a>
 			<a href="https://osu.ppy.sh/users/<?= id ?>" class="left" title="Go to user profile"><img src="https://a.ppy.sh/<?= id ?>" id="img-avatar"></a>
 				<div class="player-align left">
