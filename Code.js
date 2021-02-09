@@ -55,6 +55,7 @@ const GenerateURI = {
 
 // this is the code that gets executed when the REDIRECT_URI is called from a browser
 function doGet(e) {
+  // no state = nothing to do
   if (!e.parameter.state) {
     let page = HtmlService.createTemplateFromFile('Error');
     page.tourName = TOURNAMENT_NAME;
@@ -70,6 +71,8 @@ function doGet(e) {
       .setTitle(`${TOURNAMENT_ACRONYM} - Not Found`);
   }
 
+  // abstract the state from the URL
+  // error parameter in the url = user denied either of the oauth provider's consent screens
   const state = JSON.parse(e.parameter.state);
 
   const date = new Date().getTime();
@@ -86,9 +89,6 @@ function doGet(e) {
       .evaluate()
       .setTitle(`${TOURNAMENT_ACRONYM} - Registration Period Over`);
   }
-  // abstract the state from the URL
-  //const state = e.parameter.state;
-  // error parameter in the url = user denied either of the oauth provider's consent screens
 
   if (state.step === 'osu') {
     if (e.parameter.hasOwnProperty('error')) {
