@@ -1,73 +1,79 @@
-<link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Noto Sans">
-<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+<link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=<?= font_family ?>">
+<link rel="stylesheet" type="text/css"
+	href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/icon?family=Material+Icons">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 <style>
-  body {
-    font-family: 'Noto Sans', serif;
-    background-color: <?= (typeof bg_color !== 'undefined') ? bg_color : 'background-color: #295c77' ?>;
+	body {
+		font-family: <?= font_family ?>, serif;
+		background-color: <?= bg_color ?>;
+	}
+
+	a {
+		transition: 0.3s;
+	}
+
+	a:hover {
+		transition: 0.3s;
+		color: <?=text_hover_color ?>;
+	}
+
+	nav a:hover {
+		color: <?=header_text_hover_color ?>;
+	}
+
+  .nav-wrapper {
+    background: linear-gradient(to right, <?= nav_color_primary ?>, <?= nav_color_secondary ?>);
   }
 
-  nav {
-    background-color: <?= nav_color ?>;
-  }
+	.player-align {
+		font-weight: bold;
+		height: 64px;
+	}
 
-  a {
-    transition: 0.3s;
-  }
+	.player-align p {
+		height: 0;
+		position: relative;
+		top: -33.33%;
+	}
 
-  a:hover {
-    transition: 0.3s;
-    color: <?= (typeof text_hover_color !== 'undefined') ? text_hover_color : '#295c77' ?>;
-  }
+	a.btn.waves-effect.waves-color.waves-light {
+		background-color: <?=button_color ?>;
+		text-align: center;
+	}
 
-  nav a:hover {
-    color: <?= (typeof header_text_hover_color !== 'undefined') ? header_text_hover_color : '#cccccc' ?>;
-  }
+	#text-header {
+		text-align: center;
+		font-size: 60px;
+		color: <?=title_text_color ?>;
+	}
 
-  #text-header {
-    text-align: center;
-    font-size: 60px;
-    color: <?= (typeof title_text_color !== 'undefined') ? title_text_color : '#fff' ?>;
-  }
+	#text-body {
+		text-align: center;
+		font-size: 25px;
+		color: <?=body_text_color ?>;
+	}
 
-  #text-body {
-    text-align: center;
-    font-size: 25px;
-    color: <?= (typeof body_text_color !== 'undefined') ? body_text_color : '#8e9094' ?>;
-  }
+	#img-avatar {
+		max-height: 48px;
+		max-width: 48px;
+		border-radius: <?=avatar_roundness ?>;
+		top: 0;
+		bottom: 0;
+		margin: 8px;
+	}
 
-  .player-align {
-    font-weight: bold;
-    height: 64px;
-  }
+	#img-logo {
+		max-height: 48px;
+		max-width: 48px;
+		border-radius: <?=logo_roundness ?>;
+		top: 0;
+		bottom: 0;
+		margin: 8px;
+	}
 
-  .player-align p {
-    height: 0;
-    position: relative;
-    top: -33.33%;
-  }
-
-  #img-avatar {
-    max-height: 48px;
-    max-width: 48px;
-    border-radius: <?= (typeof avatarRoundness !== 'undefined') ? avatarRoundness : '50%' ?>;
-    top: 0;
-    bottom: 0;
-    margin: 8px;
-  }
-
-  #img-logo {
-    max-height: 48px;
-    max-width: 48px;
-    border-radius: <?= (typeof roundLogo !== 'undefined') ? logoRoundness : '50%' ?>;
-    top: 0;
-    bottom: 0;
-    margin: 8px;
-  }
-
-  #rank {
-    color: <?= (typeof user_rank_color !== 'undefined') ? user_rank_color : '#dddddd' ?>;
-  }
+	#rank {
+		color: <?=user_rank_color ?>;
+	}
 </style>

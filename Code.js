@@ -45,9 +45,21 @@ const URL_PROPERTIES = {
   tourAcronym: TOURNAMENT_ACRONYM,
   forumPostURL: FORUM_POST_URL
 };
+// Registration page's theming
 const THEMING = {
   bg_color: '#36393f',
-  nav_color: '#68217a'
+  nav_color_primary: '#7f04e1',
+  nav_color_secondary: '#cc95f8',
+  button_color: '#7289da',
+  user_rank_color: '#eeeeee',
+  title_text_color: '#ffffff',
+  body_text_color: '#8e9094',
+  text_hover_color: '#295c77',
+  header_text_hover_color: '#dddddd',
+  avatar_roundness: '50%',
+  logo_roundness: '50%',
+  // any font from this list https://fonts.google.com/
+  font_family: 'Noto Sans'
 };
 /** Dictionary object for generating OAuth2 redirect URLs */
 const GenerateURI = {
