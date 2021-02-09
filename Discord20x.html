@@ -9,11 +9,11 @@
 <body>
 	<nav>
 		<div class="nav-wrapper container">
-			<a href="<?= forumPostURL ?>" class="brand-logo right"><?= tourName ?><img class="right" src="<?= tourIcon ?>" id="img-logo"></a>
-			<div class="left"><img src="https://a.ppy.sh/<?= id ?>" id="img-avatar"></div>
+			<a href="<?= forumPostURL ?>" class="brand-logo right" title="Go to the forum post"><?= tourName ?><img class="right" src="<?= tourIcon ?>" id="img-logo"></a>
+			<a href="https://osu.ppy.sh/users/<?= id ?>" class="left" title="Go to user profile"><img src="https://a.ppy.sh/<?= id ?>" id="img-avatar"></a>
 				<div class="player-align left">
-					<p><a href="https://osu.ppy.sh/users/<?= id ?>"><?= username ?></a></p>
-					<p id="rank"><?= discord_tag ?></p>
+					<p><a href="https://osu.ppy.sh/users/<?= id ?>" title="Go to user profile"><?= username ?></a></p>
+					<p id="rank" title="Discord Tag"><?= discord_tag ?></p>
 				</div>
 			</div>
 	</nav>

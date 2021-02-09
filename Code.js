@@ -38,6 +38,13 @@ const FORUM_POST_URL = SECRET.forumPostURL ? SECRET.forumPostURL : 'https://osu.
 const REGISTRATION_END_DATE = SECRET.registrationEndDate ? new Date(SECRET.registrationEndDate) : '';
 // working sheet, realistically the only thing you would change in this script
 const SHEET = '_DATA';
+// properties that are added to all URL objects
+const URL_PROPERTIES = {
+  tourName: TOURNAMENT_NAME,
+  tourIcon: TOURNAMENT_ICON,
+  tourAcronym: TOURNAMENT_ACRONYM,
+  forumPostURL: FORUM_POST_URL 
+};
 
 /**
  * Dictionary object for generating OAuth2 redirect URLs 
@@ -58,10 +65,7 @@ function doGet(e) {
   // no state = nothing to do
   if (!e.parameter.state) {
     let page = HtmlService.createTemplateFromFile('Error');
-    page.tourName = TOURNAMENT_NAME;
-    page.tourIcon = TOURNAMENT_ICON;
-    page.tourAcronym = TOURNAMENT_ACRONYM;
-    page.forumPostURL = FORUM_POST_URL;
+    Object.assign(page, URL_PROPERTIES);
     page.error_header = '404 Not Found';
     page.error_body = 'We couldn\'t find the page you were looking for';
     page.error_footer = null;
@@ -77,13 +81,9 @@ function doGet(e) {
 
   const date = new Date().getTime();
   if (REGISTRATION_END_DATE ? (date > REGISTRATION_END_DATE.getTime()) : false) {
-    let page = HtmlService
-      .createTemplateFromFile('Registration-Over');
+    let page = HtmlService.createTemplateFromFile('Registration-Over');
+    Object.assign(page, URL_PROPERTIES);
     page.endDate = REGISTRATION_END_DATE.toUTCString().replace('GMT', 'UTC');
-    page.tourName = TOURNAMENT_NAME;
-    page.tourIcon = TOURNAMENT_ICON;
-    page.tourAcronym = TOURNAMENT_ACRONYM;
-    page.forumPostURL = FORUM_POST_URL;
 
     return page
       .evaluate()
@@ -93,10 +93,7 @@ function doGet(e) {
   if (state.step === 'osu') {
     if (e.parameter.hasOwnProperty('error')) {
       let page = HtmlService.createTemplateFromFile('Access-Denied');
-      page.tourName = TOURNAMENT_NAME;
-      page.tourIcon = TOURNAMENT_ICON;
-      page.tourAcronym = TOURNAMENT_ACRONYM;
-      page.forumPostURL = FORUM_POST_URL;
+      Object.assign(page, URL_PROPERTIES);
       page.resource_denied = 'osu!';
 
       return page
@@ -107,10 +104,7 @@ function doGet(e) {
     const token = e.parameter.code;
     if (!token) {
       let page = HtmlService.createTemplateFromFile('Error');
-      page.tourName = TOURNAMENT_NAME;
-      page.tourIcon = TOURNAMENT_ICON;
-      page.tourAcronym = TOURNAMENT_ACRONYM;
-      page.forumPostURL = FORUM_POST_URL;
+      Object.assign(page, URL_PROPERTIES);
       page.error_header = '400 Bad Request';
       page.error_body = 'Your request did not return an authentication code';
 
@@ -122,10 +116,7 @@ function doGet(e) {
 
     if (!authToken) {
       let page = HtmlService.createTemplateFromFile('Error');
-      page.tourName = TOURNAMENT_NAME;
-      page.tourIcon = TOURNAMENT_ICON;
-      page.tourAcronym = TOURNAMENT_ACRONYM;
-      page.forumPostURL = FORUM_POST_URL;
+      Object.assign(page, URL_PROPERTIES);
       page.error_header = '400 Bad Request';
       page.error_body = 'Your authentication token is invalid or has expired';
 
@@ -140,10 +131,7 @@ function doGet(e) {
     }
     if (!user) {
       let page = HtmlService.createTemplateFromFile('Error');
-      page.tourName = TOURNAMENT_NAME;
-      page.tourIcon = TOURNAMENT_ICON;
-      page.tourAcronym = TOURNAMENT_ACRONYM;
-      page.forumPostURL = FORUM_POST_URL;
+      Object.assign(page, URL_PROPERTIES);
       page.error_header = '400 Bad Request';
       page.error_body = 'Failed to query your osu! profile info, possibly because you attempted to do something you shouldn\'t';
 
@@ -155,10 +143,7 @@ function doGet(e) {
     if (user.hasOwnProperty('is_restricted')) {
       if (user.is_restricted === true) {
         let page = HtmlService.createTemplateFromFile('Error');
-        page.tourName = TOURNAMENT_NAME;
-        page.tourIcon = TOURNAMENT_ICON;
-        page.tourAcronym = TOURNAMENT_ACRONYM;
-        page.forumPostURL = FORUM_POST_URL;
+        Object.assign(page, URL_PROPERTIES);
         page.error_header = '401 Unauthorized';
         page.error_body = 'Your osu! account is currently restricted. Restricted players may not interact in any multiplayer activities';
         page.error_footer = 'You may close the page'
@@ -175,10 +160,7 @@ function doGet(e) {
     const userIsPresent = range.getValues().some(r => r[1] === user.id);
     if (userIsPresent) {
       let page = HtmlService.createTemplateFromFile('Already-Registered')
-      page.tourName = TOURNAMENT_NAME;
-      page.tourIcon = TOURNAMENT_ICON;
-      page.tourAcronym = TOURNAMENT_ACRONYM;
-      page.forumPostURL = FORUM_POST_URL;
+      Object.assign(page, URL_PROPERTIES);
       page.url = GenerateURI.discord(user);
       page.id = user.id;
       page.username = user.username;
@@ -205,10 +187,7 @@ function doGet(e) {
     // append a row to the worksheet
     SS.getSheetByName(SHEET).appendRow(addToRange);
     let page = HtmlService.createTemplateFromFile('Registration-Success');
-    page.tourName = TOURNAMENT_NAME;
-    page.tourIcon = TOURNAMENT_ICON;
-    page.tourAcronym = TOURNAMENT_ACRONYM;
-    page.forumPostURL = FORUM_POST_URL;
+    Object.assign(page, URL_PROPERTIES);
     page.url = GenerateURI.discord(user);
     page.id = user.id;
     page.username = user.username;
@@ -222,10 +201,7 @@ function doGet(e) {
   if (state.step === 'discord') {
     if (e.parameter.hasOwnProperty('error')) {
       let page = HtmlService.createTemplateFromFile('Access-Denied');
-      page.tourName = TOURNAMENT_NAME;
-      page.tourIcon = TOURNAMENT_ICON;
-      page.tourAcronym = TOURNAMENT_ACRONYM;
-      page.forumPostURL = FORUM_POST_URL;
+      Object.assign(page, URL_PROPERTIES);
       page.resource_denied = 'Discord';
 
       return page
@@ -236,10 +212,7 @@ function doGet(e) {
     const token = e.parameter.code;
     if (!token) {
       let page = HtmlService.createTemplateFromFile('Unauthorized');
-      page.tourName = TOURNAMENT_NAME;
-      page.tourIcon = TOURNAMENT_ICON;
-      page.tourAcronym = TOURNAMENT_ACRONYM;
-      page.forumPostURL = FORUM_POST_URL;
+      Object.assign(page, URL_PROPERTIES);
 
       return page
         .evaluate()
@@ -250,10 +223,7 @@ function doGet(e) {
       authToken = getDiscordToken(token);
     } catch (e) {
       let page = HtmlService.createTemplateFromFile('Unauthorized');
-      page.tourName = TOURNAMENT_NAME;
-      page.tourIcon = TOURNAMENT_ICON;
-      page.tourAcronym = TOURNAMENT_ACRONYM;
-      page.forumPostURL = FORUM_POST_URL;
+      Object.assign(page, URL_PROPERTIES);
       page.error = 'Error joining server/giving Role.';
 
       const error = [new Error(`authToken assertion failed for User ${state.osu_username}, user_id: ${state.osu_id}`), e.stack];
@@ -286,6 +256,7 @@ function doGet(e) {
       MailApp.sendEmail(MAIL, `[ERROR] - ${TOURNAMENT_ACRONYM} (authToken)`, error.join('\n'));
 
       let page = HtmlService.createTemplateFromFile('Error');
+      Object.assign(page, URL_PROPERTIES);
       page.error = 'Error while assigning Discord Role.'
 
       return page
@@ -297,11 +268,8 @@ function doGet(e) {
       // finding the row where the osu! userID is and associating the Discord Tag + Discord userID to it
       SS.getSheetByName(SHEET).getRange(insertRow, range.getLastColumn() - 2, 1, 3).setValues([[query.discordTag, query.discordId, false]]);
       let page = HtmlService.createTemplateFromFile('Discord20x');
+      Object.assign(page, URL_PROPERTIES);
       page.outcome = 'Server joined successfully';
-      page.tourName = TOURNAMENT_NAME;
-      page.tourIcon = TOURNAMENT_ICON;
-      page.tourAcronym = TOURNAMENT_ACRONYM;
-      page.forumPostURL = FORUM_POST_URL;
       page.id = uid;
       page.username = username;
       page.discord_tag = query.discordTag;
@@ -315,11 +283,8 @@ function doGet(e) {
       // finding the row where the osu! userID is and associating the Discord Tag + Discord userID to it
       SS.getSheetByName(SHEET).getRange(insertRow, range.getLastColumn() - 2, 1, 3).setValues([[query.discordTag, query.discordId, true]]);
       let page = HtmlService.createTemplateFromFile('Discord20x');
+      Object.assign(page, URL_PROPERTIES);
       page.outcome = 'Player Role assigned successfully';
-      page.tourName = TOURNAMENT_NAME;
-      page.tourIcon = TOURNAMENT_ICON;
-      page.tourAcronym = TOURNAMENT_ACRONYM;
-      page.forumPostURL = FORUM_POST_URL;
       page.id = uid;
       page.username = username;
       page.discord_tag = query.discordTag;
@@ -331,10 +296,7 @@ function doGet(e) {
   }
   else {
     let page = HtmlService.createTemplateFromFile('Error');
-    page.tourName = TOURNAMENT_NAME;
-    page.tourIcon = TOURNAMENT_ICON;
-    page.tourAcronym = TOURNAMENT_ACRONYM;
-    page.forumPostURL = FORUM_POST_URL;
+    page = Object.assign(page, URL_PROPERTIES);
     page.error = 'Unknown error.';
 
     return page
