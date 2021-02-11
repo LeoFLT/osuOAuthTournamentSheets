@@ -65,7 +65,7 @@ const THEMING = {
 const GenerateURI = {
   /** @property {string} osu Generate an osu! OAuth2 URI */
   osu: `https://osu.ppy.sh/oauth/authorize?client_id=${SECRET.osuClientId}&redirect_uri=${SECRET.redirectUri}&response_type=code&scope=identify&state=%7B%22step%22%3A%22osu%22%7D`,
-  /** @param {{id: number, username: string}} params The parameters to feed into the URL */
+  /** @param {{ id: number, username: string }} params The parameters to feed into the URL */
   discord: (params) => `https://discord.com/api/oauth2/authorize?client_id=${SECRET.discordClientId}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify%20guilds.join&state=%7B%22step%22%3A%22discord%22%2C%22osu_id%22%3A%22${params.id}%22%2C%22osu_username%22%3A%22${params.username}%22%7D&prompt=none`
 };
 /**
@@ -82,7 +82,6 @@ function include(file, ...overrides) {
     .evaluate()
     .getContent();
 }
-
 /**
  * Service class for managing page templates
  * @class
@@ -111,7 +110,7 @@ class TemplateService {
   }
   /** 
    * @method append Appends a list of objects as properties of the HtmlService.HtmlTemplate file
-   * @param {...{objList}} objList The list of object(s) to append to the file as properties
+   * @param {...{ objList }} objList The list of object(s) to append to the file as properties
    * @returns {HtmlService.HtmlTemplate} Returns a HtmlTemplate object, for chaining
    */
   static append(...objList) {
