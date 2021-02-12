@@ -663,7 +663,7 @@ function updateUsers() {
         row[1] += ' [RESTRICTED]';
         continue;
       }
-      else if (user.hasOwnProperty(username)) {
+      else if (user.hasOwnProperty('username')) {
         row[1] = user.username;
         row[2] = user.rank;
         row[3] = user.pp;
