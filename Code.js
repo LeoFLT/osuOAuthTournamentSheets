@@ -125,9 +125,8 @@ class TemplateService {
    * @returns {HtmlService.HtmlOutput} Returns a HtmlOutput object, to be served as webpage
    */
   static serve(title) {
-    this.__servePage__ = this.htmlFile.evaluate();
-    if (title) this.__servePage__.setTitle(title);
-    return this.__servePage__;
+    if (title) this.htmlFile.evaluate().setTitle(title);
+    return this.htmlFile.evaluate();
   }
 }
 
