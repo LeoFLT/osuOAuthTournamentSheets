@@ -51,7 +51,7 @@ const THEMING = {
   nav_color_primary: '#7f04e1',
   nav_color_secondary: '#cc95f8',
   button_color: '#7289da',
-  user_rank_color: '#eeeeee',
+  user_rank_color: '#dddddd',
   title_text_color: '#ffffff',
   body_text_color: '#8e9094',
   text_hover_color: '#295c77',
@@ -98,6 +98,7 @@ class TemplateService {
   /** 
    * @method include Inserts a list of files inside the template as a header, similar to importing a stylesheet in HTML
    * @param {...string} fileList The list of strings that each represent a project file to be imported
+   * @param {...{ objList: any }} overrides Not implemented 
    * @returns {HtmlService.HtmlTemplate} Returns a HtmlTemplate object, for chaining
   */
   static include(...fileList) {
@@ -105,12 +106,12 @@ class TemplateService {
     for (const file of fileList) {
       itemsToInclude = [...itemsToInclude, include(file, THEMING)];
     }
-    this.htmlFile.includeList = itemsToInclude.join('\n');
+    this.htmlFile.stylesheets = itemsToInclude.join('\n');
     return this;
   }
   /** 
    * @method append Appends a list of objects as properties of the HtmlService.HtmlTemplate file
-   * @param {...{ objList }} objList The list of object(s) to append to the file as properties
+   * @param {...{ objList: any }} objList The list of object(s) to append to the file as properties
    * @returns {HtmlService.HtmlTemplate} Returns a HtmlTemplate object, for chaining
    */
   static append(...objList) {
@@ -120,12 +121,12 @@ class TemplateService {
     return this;
   }
   /**
-   * @method serve Serves and sets the title to the webpage
-   * @param {string} title The web page title to serve
+   * @method render Renders the HtmlTemplate object
+   * @param {string} title The web page title
    * @returns {HtmlService.HtmlOutput} Returns a HtmlOutput object, to be served as webpage
    */
   static serve(title) {
-    if (title) this.htmlFile.evaluate().setTitle(title);
+    if (title) return this.htmlFile.evaluate().setTitle(title);
     return this.htmlFile.evaluate();
   }
 }

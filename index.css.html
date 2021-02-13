@@ -1,4 +1,6 @@
 <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=<?= font_family ?>">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fork-awesome@1.1.7/css/fork-awesome.min.css"
+	integrity="sha256-gsmEoJAws/Kd3CjuOQzLie5Q3yshhvmo7YNtBG7aaEY=" crossorigin="anonymous">
 <link rel="stylesheet" type="text/css"
 	href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/icon?family=Material+Icons">
@@ -10,22 +12,26 @@
 		background-color: <?= bg_color ?>;
 	}
 
+	i.fa.fa-discord {
+		padding: 0 8px 0 0;
+	}
+
 	a {
 		transition: 0.3s;
 	}
 
 	a:hover {
 		transition: 0.3s;
-		color: <?=text_hover_color ?>;
+		color: <?= text_hover_color ?>;
 	}
 
 	nav a:hover {
-		color: <?=header_text_hover_color ?>;
+		color: <?= header_text_hover_color ?>;
 	}
 
-  .nav-wrapper {
-    background: linear-gradient(to right, <?= nav_color_primary ?>, <?= nav_color_secondary ?>);
-  }
+	.nav-wrapper {
+		background: linear-gradient(to right, <?= nav_color_primary ?>, <?= nav_color_secondary ?>);
+	}
 
 	.player-align {
 		font-weight: bold;
@@ -39,26 +45,27 @@
 	}
 
 	a.btn.waves-effect.waves-color.waves-light {
-		background-color: <?=button_color ?>;
+		background-color: <?= button_color ?>;
 		text-align: center;
+    font-size: 18px;
 	}
 
 	#text-header {
 		text-align: center;
 		font-size: 60px;
-		color: <?=title_text_color ?>;
+		color: <?= title_text_color ?>;
 	}
 
 	#text-body {
 		text-align: center;
 		font-size: 25px;
-		color: <?=body_text_color ?>;
+		color: <?= body_text_color ?>;
 	}
 
 	#img-avatar {
 		max-height: 48px;
 		max-width: 48px;
-		border-radius: <?=avatar_roundness ?>;
+		border-radius: <?= avatar_roundness ?>;
 		top: 0;
 		bottom: 0;
 		margin: 8px;
@@ -67,13 +74,13 @@
 	#img-logo {
 		max-height: 48px;
 		max-width: 48px;
-		border-radius: <?=logo_roundness ?>;
+		border-radius: <?= logo_roundness ?>;
 		top: 0;
 		bottom: 0;
 		margin: 8px;
 	}
 
 	#rank {
-		color: <?=user_rank_color ?>;
+		color: <?= user_rank_color ?>;
 	}
 </style>
