@@ -51,7 +51,7 @@ const THEMING = {
   nav_color_primary: '#7f04e1',
   nav_color_secondary: '#cc95f8',
   button_color: '#7289da',
-  user_rank_color: '#eeeeee',
+  user_rank_color: '#dddddd',
   title_text_color: '#ffffff',
   body_text_color: '#8e9094',
   text_hover_color: '#295c77',
@@ -65,7 +65,7 @@ const THEMING = {
 const GenerateURI = {
   /** @property {string} osu Generate an osu! OAuth2 URI */
   osu: `https://osu.ppy.sh/oauth/authorize?client_id=${SECRET.osuClientId}&redirect_uri=${SECRET.redirectUri}&response_type=code&scope=identify&state=%7B%22step%22%3A%22osu%22%7D`,
-  /** @param {{ id: number, username: string }} params The parameters to feed into the URL */
+  /** @param {{id: number, username: string}} params The parameters to feed into the URL */
   discord: (params) => `https://discord.com/api/oauth2/authorize?client_id=${SECRET.discordClientId}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=identify%20guilds.join&state=%7B%22step%22%3A%22discord%22%2C%22osu_id%22%3A%22${params.id}%22%2C%22osu_username%22%3A%22${params.username}%22%7D&prompt=none`
 };
 /**
@@ -82,6 +82,7 @@ function include(file, ...overrides) {
     .evaluate()
     .getContent();
 }
+
 /**
  * Service class for managing page templates
  * @class
@@ -98,6 +99,7 @@ class TemplateService {
   /** 
    * @method include Inserts a list of files inside the template as a header, similar to importing a stylesheet in HTML
    * @param {...string} fileList The list of strings that each represent a project file to be imported
+   * @param {...{ objList: any }} overrides Not implemented 
    * @returns {HtmlService.HtmlTemplate} Returns a HtmlTemplate object, for chaining
   */
   static include(...fileList) {
@@ -105,12 +107,12 @@ class TemplateService {
     for (const file of fileList) {
       itemsToInclude = [...itemsToInclude, include(file, THEMING)];
     }
-    this.htmlFile.includeList = itemsToInclude.join('\n');
+    this.htmlFile.stylesheets = itemsToInclude.join('\n');
     return this;
   }
   /** 
    * @method append Appends a list of objects as properties of the HtmlService.HtmlTemplate file
-   * @param {...{ objList }} objList The list of object(s) to append to the file as properties
+   * @param {...{ objList: any }} objList The list of object(s) to append to the file as properties
    * @returns {HtmlService.HtmlTemplate} Returns a HtmlTemplate object, for chaining
    */
   static append(...objList) {
@@ -120,14 +122,13 @@ class TemplateService {
     return this;
   }
   /**
-   * @method serve Serves and sets the title to the webpage
-   * @param {string} title The web page title to serve
+   * @method render Renders the HtmlTemplate object
+   * @param {string} title The web page title
    * @returns {HtmlService.HtmlOutput} Returns a HtmlOutput object, to be served as webpage
    */
-  static serve(title) {
-    this.__servePage__ = this.htmlFile.evaluate();
-    if (title) this.__servePage__.setTitle(title);
-    return this.__servePage__;
+  static render(title) {
+    if (title) return this.htmlFile.evaluate().setTitle(title);
+    return this.htmlFile.evaluate();
   }
 }
 
@@ -143,7 +144,7 @@ function doGet(e) {
         error_body: 'We couldn\'t find the page you were looking for',
         error_footer: null
       })
-      .serve(`${TOURNAMENT_ACRONYM} - Not Found`);
+      .render(`${TOURNAMENT_ACRONYM} - Not Found`);
   }
 
   // abstract the state from the URL
@@ -158,7 +159,7 @@ function doGet(e) {
       .append(URL_PROPERTIES, {
         endDate: REGISTRATION_END_DATE.toUTCString().replace('GMT', 'UTC')
       })
-      .serve(`${TOURNAMENT_ACRONYM} - Registration Period Over`);
+      .render(`${TOURNAMENT_ACRONYM} - Registration Period Over`);
   }
 
   if (state.step === 'osu') {
@@ -167,7 +168,7 @@ function doGet(e) {
         .createTemplateFromFile('Access-Denied')
         .include('index.css')
         .append(URL_PROPERTIES, { resource_denied: 'osu!' })
-        .serve(`${TOURNAMENT_ACRONYM} - Authorization Failed`);
+        .render(`${TOURNAMENT_ACRONYM} - Authorization Failed`);
     }
     // abstract the code from the URL
     const token = e.parameter.code;
@@ -179,7 +180,7 @@ function doGet(e) {
           error_header: '400 Bad Request',
           error_body: 'Your request did not return an authentication code'
         })
-        .serve(`${TOURNAMENT_ACRONYM} - Bad Request`);
+        .render(`${TOURNAMENT_ACRONYM} - Bad Request`);
     }
     const authToken = getOsuToken(token);
 
@@ -191,7 +192,7 @@ function doGet(e) {
           error_header: '400 Bad Request',
           error_body: 'Your authentication token is invalid or has expired'
         })
-        .serve(`${TOURNAMENT_ACRONYM} - Error`);
+        .render(`${TOURNAMENT_ACRONYM} - Error`);
     }
     let user;
     try { user = queryUser(authToken); }
@@ -206,7 +207,7 @@ function doGet(e) {
           error_header: '400 Bad Request',
           error_body: 'Failed to query your osu! profile info, possibly because you attempted to do something you shouldn\'t'
         })
-        .serve(`${TOURNAMENT_ACRONYM} - Bad Request`);
+        .render(`${TOURNAMENT_ACRONYM} - Bad Request`);
     }
 
     if (user.hasOwnProperty('is_restricted')) {
@@ -219,7 +220,7 @@ function doGet(e) {
             error_body: 'Your osu! account is currently restricted. Restricted players may not interact in any multiplayer activities',
             error_footer: 'You may close the page'
           })
-          .serve(`${TOURNAMENT_ACRONYM} - Unauthorized`);
+          .render(`${TOURNAMENT_ACRONYM} - Unauthorized`);
       }
     }
 
@@ -237,7 +238,7 @@ function doGet(e) {
           username: user.username,
           rank: user.rank
         })
-        .serve(`${TOURNAMENT_ACRONYM} - Player Already Registered`);
+        .render(`${TOURNAMENT_ACRONYM} - Player Already Registered`);
     }
 
     const addToRange = [
@@ -265,7 +266,7 @@ function doGet(e) {
         username: user.username,
         rank: user.rank
       })
-      .serve(`${TOURNAMENT_ACRONYM} - Player Registered Successfully`);
+      .render(`${TOURNAMENT_ACRONYM} - Player Registered Successfully`);
   }
 
   if (state.step === 'discord') {
@@ -274,7 +275,7 @@ function doGet(e) {
         .createTemplateFromFile('Access-Denied')
         .include('index.css')
         .append(URL_PROPERTIES, { resource_denied: 'Discord' })
-        .serve(`${TOURNAMENT_ACRONYM} - Authorization Denied`);
+        .render(`${TOURNAMENT_ACRONYM} - Authorization Denied`);
     }
     // abstracting auth code from url
     const token = e.parameter.code;
@@ -283,7 +284,7 @@ function doGet(e) {
         .createTemplateFromFile('Unauthorized')
         .include('index.css')
         .append(URL_PROPERTIES)
-        .serve(`${TOURNAMENT_ACRONYM} - Error`);
+        .render(`${TOURNAMENT_ACRONYM} - Error`);
     }
 
     let authToken;
@@ -299,7 +300,7 @@ function doGet(e) {
         .createTemplateFromFile('Unauthorized')
         .include('index.css')
         .append(URL_PROPERTIES, { error: 'Error joining server/giving Role.' })
-        .serve(`${TOURNAMENT_ACRONYM} - Error`);
+        .render(`${TOURNAMENT_ACRONYM} - Error`);
     }
     const uid = parseInt(state.osu_id);
     const username = state.osu_username
@@ -325,7 +326,7 @@ function doGet(e) {
         .createTemplateFromFile('Error')
         .include('index.css')
         .append(URL_PROPERTIES, { error: 'Error while assigning Discord Role.' })
-        .serve(`${TOURNAMENT_ACRONYM} - Error`);
+        .render(`${TOURNAMENT_ACRONYM} - Error`);
     }
     // 201: member succesffully joined the server
     if (query.response === 201) {
@@ -340,7 +341,7 @@ function doGet(e) {
           username: username,
           discord_tag: query.discordTag
         })
-        .serve(`${TOURNAMENT_ACRONYM} - Server joined successfully`);
+        .render(`${TOURNAMENT_ACRONYM} - Server joined successfully`);
     }
     // 204: member already joined the server, roles added
     if (query.response === 204) {
@@ -355,7 +356,7 @@ function doGet(e) {
           username: username,
           discord_tag: query.discordTag
         })
-        .serve(`${TOURNAMENT_ACRONYM} - Player already in the server`);
+        .render(`${TOURNAMENT_ACRONYM} - Player already in the server`);
     }
   }
   else {
@@ -367,7 +368,7 @@ function doGet(e) {
         error_body: 'The server encountered an internal error and could not complete your request',
         error_footer: 'You may close this window and try again at a later time'
       })
-      .serve(`${TOURNAMENT_ACRONYM} - Error`);
+      .render(`${TOURNAMENT_ACRONYM} - Error`);
   }
 }
 

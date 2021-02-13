@@ -35,19 +35,22 @@ function deleteUsersPrompt() {
 function showInstructions() {
   const UI = SpreadsheetApp.getUi();
   let html;
-  if (REDIRECT_URI) html = HtmlService.createTemplateFromFile('Setup-UI-2');
-  else html = HtmlService.createTemplateFromFile('Setup-UI-1');
+  if (REDIRECT_URI) html = TemplateService.createTemplateFromFile('Setup-UI-2');
+  else html = TemplateService.createTemplateFromFile('Setup-UI-1');
 
   if (SECRET.hasOwnProperty('discordClientId') && SECRET.hasOwnProperty('discordGuildId')) {
-    html.discordInfoPresent = true;
-    html.discordClientId = SECRET.discordClientId;
-    html.discordGuildId = SECRET.discordGuildId;
+    html.append({
+      discordInfoPresent: true,
+      discordClientId: SECRET.discordClientId,
+      discordGuildId: SECRET.discordGuildId
+    })
   } else {
-    html.discordInfoPresent = false;
+    html.append({ discordInfoPresent: false });
   }
 
+
   UI.showModalDialog(
-    html.evaluate()
+    html.render()
       .setWidth(1000)
       .setHeight(1000),
     `Sheet setup - ${REDIRECT_URI ? 'Part 2' : 'Part 1'}`);
@@ -62,13 +65,13 @@ function setEnvVars() {
     const result = redirectUriPrompt.getResponseText().trim();
     return PropertiesService.getScriptProperties().setProperty('redirectUri', result);
   }
-  
+
   const tournamentNamePrompt = prompt('Enter the name for your tournament', `The name will be shown in the header for the registration pages, aligned to the right.\n\nCurrent tournament name: ${SECRET.tournamentName ? SECRET.tournamentName : 'No name set'}\n\nCancel: no change`);
   if (tournamentNamePrompt.getSelectedButton() === UI.Button.OK) {
     const result = tournamentNamePrompt.getResponseText().trim();
     PropertiesService.getScriptProperties().setProperty('tournamentName', result);
   }
-  
+
   const tournamentAcronymPrompt = prompt('Enter your Tournament\'s acronym (e.g. My osu! Tournament => MOT)', `Current acronym: ${SECRET.tournamentAcronym ? SECRET.tournamentAcronym : 'No acronym set'}\n\nCancel: no change`);
   if (tournamentAcronymPrompt.getSelectedButton() === UI.Button.OK) {
     const result = tournamentAcronymPrompt.getResponseText().trim();
