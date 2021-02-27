@@ -121,7 +121,7 @@ class TemplateService {
     return this;
   }
   /**
-   * @method render Renders the HtmlTemplate object
+   * @method serve Serves the HtmlTemplate object
    * @param {string} title The web page title
    * @returns {HtmlService.HtmlOutput} Returns a HtmlOutput object, to be served as webpage
    */

@@ -50,7 +50,7 @@ function showInstructions() {
 
 
   UI.showModalDialog(
-    html.render()
+    html.serve()
       .setWidth(1000)
       .setHeight(1000),
     `Sheet setup - ${REDIRECT_URI ? 'Part 2' : 'Part 1'}`);
