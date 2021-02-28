@@ -475,7 +475,7 @@ function queryUser(token) {
     if (!ignoredBadges.test(currentBadge.toLowerCase())) result.badgeCount++;
   }
   // shorthands for common stats
-  result.rank = result.statistics.pp_rank;
+  result.rank = result.statistics.global_rank;
   result.pp = result.statistics.pp;
 
   // reduce potential cache size overflow
@@ -633,7 +633,7 @@ function getUser(userId, mode) {
   }
 
   // shorthands for common stats
-  result.rank = result.statistics.pp_rank;
+  result.rank = result.statistics.global_rank;
   result.pp = result.statistics.pp;
   result.mode = gameMode;
 
